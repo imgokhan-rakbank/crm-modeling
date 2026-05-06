@@ -100,7 +100,7 @@ PARTY ────────────────────────�
          │
          ├── SME_LOAN ────────────── SME_LOAN_DISBURSEMENT
          │   │                       SME_REPAYMENT_SCHEDULE
-      │   │                       CREDIT_LIMIT ─── CREDIT_LIMIT_DOCUMENT
+         │   │                       CREDIT_LIMIT ─── CREDIT_LIMIT_DOCUMENT
          │   │                       OD_FACILITY        CREDIT_LIMIT_COLLATERAL
          │   └─────────────────────── LOAN_RECOVERY_TRANSACTION
          │

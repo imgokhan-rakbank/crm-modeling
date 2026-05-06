@@ -6,19 +6,13 @@ erDiagram
   %% ─────────────────────────────────────────────────────────
 
   PARTY {
-    uuid customer_id PK
+    uuid party_id PK
     varchar cif_number UK
-    enum customer_type
-    varchar customer_status
-    varchar customer_classification
+    enum party_type
+    varchar party_status
     boolean is_blacklisted
     boolean is_negated
-    boolean is_vip
-    boolean is_royal
-    boolean is_minor
-    boolean is_special_needs
-    boolean is_pep
-    date customer_since_date
+    date party_since_date
     varchar preferred_language
     uuid segment_id FK
     uuid sub_segment_id FK
@@ -214,8 +208,8 @@ erDiagram
 
   PARTY_RELATIONSHIP {
     uuid relationship_id PK
-    uuid primary_customer_id FK
-    uuid related_customer_id FK
+    uuid primary_party_id FK
+    uuid related_party_id FK
     varchar relationship_type
     varchar bank_relation_type
     varchar relationship_with_entity
@@ -1247,5 +1241,4 @@ erDiagram
   PARTY ||--o{ ESTATEMENT_DELIVERY : "receives eStatements"
 
   PRODUCT ||--o{ ACCOUNT : "defines"
-  ACCOUNT }o--o| BRANCH : "held at"
 ```
