@@ -1,6 +1,6 @@
 # Banking CRM 360 — Logical Data Model
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Date:** May 2026  
 > **Source:** CRM Field Requirements v1.1 — Levels & Navigation for Data Modelling  
 > **Scope:** RAKBANK CRM 360 — Individual & Corporate customers, all product lines
@@ -11,7 +11,7 @@
 
 1. [Design Principles](#1-design-principles)
 2. [Entity Overview](#2-entity-overview)
-3. [Domain: Customer & Party](#3-domain-customer--party)
+3. [Domain: Party](#3-domain-party)
 4. [Domain: Products — Accounts & Cards](#4-domain-products--accounts--cards)
 5. [Domain: Products — Lending](#5-domain-products--lending)
 6. [Domain: Products — Investments & Insurance](#6-domain-products--investments--insurance)
@@ -26,33 +26,36 @@
 
 | Principle | Rationale |
 |-----------|-----------|
-| **Party Model** | Single `CUSTOMER` supertype with `INDIVIDUAL_CUSTOMER` and `CORPORATE_CUSTOMER` subtypes — supports joint accounts, guarantors, and group structures |
+| **Party Model** | Single `PARTY` supertype with `PARTY_INDIVIDUAL` and `PARTY_CORPORATE` subtypes — the supertype holds only attributes universal to all parties; subtype-specific attributes live in each subtype |
 | **Product Catalogue separation** | `PRODUCT` (static definition) is separate from product-instance tables (e.g. `ACCOUNT`, `CREDIT_CARD`) — allows product changes without modifying customer data |
 | **Levelled access alignment** | Level-0 (Mini 360) fields are promoted as non-nullable/indexed columns; Level-1+ fields are in child tables or extended attribute tables |
 | **Islamic Finance parity** | `ISLAMIC_FINANCE` mirrors retail/SME loan structure but keeps Shariah-specific fields (profit rate, Murabaha/Ijara scheme) |
 | **Audit everywhere** | Every mutable entity carries `created_at`, `updated_at`, `created_by`, `updated_by` columns |
 | **Soft delete** | Entities use `is_active` / `status` rather than hard deletes for regulatory traceability |
-| **Normalisation target: 3NF** | With selective denormalisation of calculated/summary values on `CUSTOMER_PORTFOLIO_SUMMARY` for Mini-360 performance |
+| **Normalisation target: 3NF** | With selective denormalisation of calculated/summary values on `PARTY_PORTFOLIO_SUMMARY` for Mini-360 performance |
 
 ---
 
 ## 2. Entity Overview
 
 ```
-CUSTOMER ─────────────────────── INDIVIDUAL_CUSTOMER
-         └────────────────────── CORPORATE_CUSTOMER
-         │
-         ├── CUSTOMER_IDENTIFICATION
-         ├── CUSTOMER_CONTACT
-         ├── CUSTOMER_CONSENT
-         ├── CUSTOMER_KYC
-         ├── CUSTOMER_CHANNEL_SUBSCRIPTION
-         ├── CUSTOMER_ANALYTICS
-         ├── CUSTOMER_PORTFOLIO_SUMMARY
-         │
-         ├── CUSTOMER_RELATIONSHIP ── (self-join: joint holders, guarantors, group members)
-         │
-         ├── ACCOUNT ─────────────── ACCOUNT_BALANCE
+PARTY ────────────────────────── PARTY_INDIVIDUAL
+      └─────────────────────────  PARTY_CORPORATE
+      │
+      ├── PARTY_IDENTIFICATION
+      ├── PARTY_PHONE
+      ├── PARTY_EMAIL
+      ├── PARTY_ADDRESS
+      ├── PARTY_CONSENT
+      ├── PARTY_COMPLIANCE
+      ├── PARTY_KYC
+      ├── PARTY_CHANNEL_SUBSCRIPTION
+      ├── PARTY_ANALYTICS
+      ├── PARTY_PORTFOLIO_SUMMARY
+      │
+      ├── PARTY_RELATIONSHIP ── (self-join: joint holders, guarantors, group members)
+      │
+      ├── ACCOUNT ─────────────── ACCOUNT_BALANCE
          │   │                       ACCOUNT_INTEREST_CONFIG
          │   │                       ACCOUNT_STATEMENT_CONFIG
          │   │                       ACCOUNT_LIMIT
@@ -97,7 +100,7 @@ CUSTOMER ─────────────────────── I
          │
          ├── SME_LOAN ────────────── SME_LOAN_DISBURSEMENT
          │   │                       SME_REPAYMENT_SCHEDULE
-         │   │                       CREDIT_LIMIT ─── CREDIT_LIMIT_DOCUMENT
+      │   │                       CREDIT_LIMIT ─── CREDIT_LIMIT_DOCUMENT
          │   │                       OD_FACILITY        CREDIT_LIMIT_COLLATERAL
          │   └─────────────────────── LOAN_RECOVERY_TRANSACTION
          │
@@ -115,35 +118,28 @@ CUSTOMER ─────────────────────── I
          ├── INTERACTION
          ├── SERVICE_REQUEST
          ├── LEAD
-         ├── CUSTOMER_PACKAGE ─────── PACKAGE_UTILIZATION
+      ├── PARTY_PACKAGE ────────── PACKAGE_UTILIZATION
          │
          └── DOCUMENT
 ```
 
 ---
 
-## 3. Domain: Customer & Party
+## 3. Domain: Party
 
-### 3.1 CUSTOMER *(supertype)*
+### 3.1 PARTY *(supertype)*
 
-Central party record. One row per CIF.
+Central party record. One row per CIF. Contains **only attributes universal to every party** — individual-specific and corporate-specific attributes live exclusively in `PARTY_INDIVIDUAL` and `PARTY_CORPORATE`.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `customer_id` | UUID | PK | Surrogate key |
+| `party_id` | UUID | PK | Surrogate key |
 | `cif_number` | VARCHAR(20) | UNIQUE NOT NULL | Finacle CIF ID |
-| `customer_type` | ENUM | NOT NULL | `INDIVIDUAL` \| `CORPORATE` |
-| `customer_status` | VARCHAR(30) | NOT NULL | `ACTIVE` \| `INACTIVE` \| `DORMANT` \| `DECEASED` \| `CLOSED` |
-| `customer_classification` | VARCHAR(50) | | e.g. `RESIDENT` \| `NON_RESIDENT` |
-| `customer_special_status` | VARCHAR(50) | | Free-text special status field |
+| `party_type` | ENUM | NOT NULL | `INDIVIDUAL` \| `CORPORATE` |
+| `party_status` | VARCHAR(30) | NOT NULL | `ACTIVE` \| `INACTIVE` \| `DORMANT` \| `DECEASED` \| `CLOSED` |
 | `is_blacklisted` | BOOLEAN | NOT NULL DEFAULT FALSE | Finacle blacklisted flag |
-| `is_negated` | BOOLEAN | NOT NULL DEFAULT FALSE | Negated customer flag |
-| `is_vip` | BOOLEAN | NOT NULL DEFAULT FALSE | Privilege 786 flag |
-| `is_royal` | BOOLEAN | NOT NULL DEFAULT FALSE | Ruling family flag |
-| `is_minor` | BOOLEAN | NOT NULL DEFAULT FALSE | Minor customer flag |
-| `is_special_needs` | BOOLEAN | NOT NULL DEFAULT FALSE | People of determination flag |
-| `is_pep` | BOOLEAN | NOT NULL DEFAULT FALSE | Politically Exposed Person |
-| `customer_since_date` | DATE | | CIF creation date |
+| `is_negated` | BOOLEAN | NOT NULL DEFAULT FALSE | Negated flag |
+| `party_since_date` | DATE | | CIF creation date |
 | `preferred_language` | VARCHAR(10) | | ISO 639-1 code, e.g. `EN`, `AR` |
 | `segment_id` | UUID | FK → SEGMENT | |
 | `sub_segment_id` | UUID | FK → SEGMENT | |
@@ -158,13 +154,20 @@ Central party record. One row per CIF.
 
 ---
 
-### 3.2 INDIVIDUAL_CUSTOMER *(subtype)*
+### 3.2 PARTY_INDIVIDUAL *(subtype)*
 
-One-to-one with `CUSTOMER` where `customer_type = INDIVIDUAL`.
+One-to-one with `PARTY` where `party_type = INDIVIDUAL`. Contains all individual-specific attributes including those that were incorrectly on the supertype.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `customer_id` | UUID | PK, FK → CUSTOMER | |
+| `party_id` | UUID | PK, FK → PARTY | |
+| `is_vip` | BOOLEAN | NOT NULL DEFAULT FALSE | Privilege 786 flag |
+| `is_royal` | BOOLEAN | NOT NULL DEFAULT FALSE | Ruling family flag |
+| `is_minor` | BOOLEAN | NOT NULL DEFAULT FALSE | Minor customer flag |
+| `is_special_needs` | BOOLEAN | NOT NULL DEFAULT FALSE | People of determination flag |
+| `is_pep` | BOOLEAN | NOT NULL DEFAULT FALSE | Politically Exposed Person |
+| `party_classification` | VARCHAR(50) | | `RESIDENT` \| `NON_RESIDENT` |
+| `party_special_status` | VARCHAR(50) | | Free-text special status note |
 | `title` | VARCHAR(10) | | `MR` \| `MRS` \| `MS` \| `DR` etc. |
 | `first_name` | VARCHAR(100) | NOT NULL | |
 | `middle_name` | VARCHAR(100) | | |
@@ -189,13 +192,13 @@ One-to-one with `CUSTOMER` where `customer_type = INDIVIDUAL`.
 
 ---
 
-### 3.3 CORPORATE_CUSTOMER *(subtype)*
+### 3.3 PARTY_CORPORATE *(subtype)*
 
-One-to-one with `CUSTOMER` where `customer_type = CORPORATE`.
+One-to-one with `PARTY` where `party_type = CORPORATE`. Contains all corporate/business-specific attributes.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `customer_id` | UUID | PK, FK → CUSTOMER | |
+| `party_id` | UUID | PK, FK → PARTY | |
 | `company_name` | VARCHAR(300) | NOT NULL | |
 | `short_name` | VARCHAR(100) | | |
 | `country_of_incorporation` | CHAR(3) | | ISO 3166-1 alpha-3 |
@@ -231,14 +234,14 @@ Supports group-level credit structures for SME/Corporate.
 
 ---
 
-### 3.5 CUSTOMER_IDENTIFICATION
+### 3.5 PARTY_IDENTIFICATION
 
-Multiple identification documents per customer.
+Multiple identification documents per party.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `identification_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `document_type` | VARCHAR(30) | NOT NULL | `PASSPORT` \| `EMIRATES_ID` \| `TRADE_LICENSE` \| `VISA` \| `DRIVING_LICENSE` etc. |
 | `document_number` | VARCHAR(50) | NOT NULL | |
 | `issue_date` | DATE | | |
@@ -254,22 +257,51 @@ Multiple identification documents per customer.
 
 ---
 
-### 3.6 CUSTOMER_CONTACT
+### 3.6 PARTY_PHONE
 
-Phone numbers, emails, and addresses — all in one table (contact_category discriminates).
+One row per phone number. Separating phone, email, and address into dedicated entities allows each to have its own validation rules, preferred flags, and audit history.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `contact_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
-| `contact_category` | ENUM | NOT NULL | `PHONE` \| `EMAIL` \| `ADDRESS` |
-| `is_preferred` | BOOLEAN | NOT NULL DEFAULT FALSE | |
-| `is_active` | BOOLEAN | NOT NULL DEFAULT TRUE | |
-| `phone_number` | VARCHAR(20) | | |
-| `phone_type` | VARCHAR(20) | | `MOBILE` \| `HOME` \| `WORK` \| `FAX` |
+| `phone_id` | UUID | PK | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
+| `phone_number` | VARCHAR(20) | NOT NULL | |
+| `phone_type` | VARCHAR(20) | NOT NULL | `MOBILE` \| `HOME` \| `WORK` \| `FAX` |
 | `country_code` | VARCHAR(5) | | Dial code e.g. `+971` |
 | `area_code` | VARCHAR(5) | | |
-| `email_address` | VARCHAR(254) | | |
+| `is_preferred` | BOOLEAN | NOT NULL DEFAULT FALSE | |
+| `is_active` | BOOLEAN | NOT NULL DEFAULT TRUE | |
+| `created_at` | TIMESTAMP | NOT NULL | |
+| `updated_at` | TIMESTAMP | NOT NULL | |
+
+---
+
+### 3.7 PARTY_EMAIL
+
+One row per email address.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `email_id` | UUID | PK | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
+| `email_address` | VARCHAR(254) | NOT NULL | |
+| `email_type` | VARCHAR(20) | | `PERSONAL` \| `WORK` |
+| `is_preferred` | BOOLEAN | NOT NULL DEFAULT FALSE | |
+| `is_active` | BOOLEAN | NOT NULL DEFAULT TRUE | |
+| `created_at` | TIMESTAMP | NOT NULL | |
+| `updated_at` | TIMESTAMP | NOT NULL | |
+
+---
+
+### 3.8 PARTY_ADDRESS
+
+One row per postal / physical address.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `address_id` | UUID | PK | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
+| `address_type` | VARCHAR(20) | NOT NULL | `HOME` \| `WORK` \| `MAILING` |
 | `address_line_1` | VARCHAR(200) | | |
 | `address_line_2` | VARCHAR(200) | | |
 | `address_line_3` | VARCHAR(200) | | |
@@ -278,20 +310,21 @@ Phone numbers, emails, and addresses — all in one table (contact_category disc
 | `postal_code` | VARCHAR(20) | | |
 | `country` | CHAR(3) | | ISO 3166-1 alpha-3 |
 | `po_box` | VARCHAR(20) | | |
-| `address_type` | VARCHAR(20) | | `HOME` \| `WORK` \| `MAILING` |
+| `is_preferred` | BOOLEAN | NOT NULL DEFAULT FALSE | |
+| `is_active` | BOOLEAN | NOT NULL DEFAULT TRUE | |
 | `created_at` | TIMESTAMP | NOT NULL | |
 | `updated_at` | TIMESTAMP | NOT NULL | |
 
 ---
 
-### 3.7 CUSTOMER_CONSENT
+### 3.9 PARTY_CONSENT
 
-Marketing and regulatory consent flags.
+Marketing and communication consent preferences. Separated from compliance/regulatory data which belongs in `PARTY_COMPLIANCE`.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `consent_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER UNIQUE NOT NULL | One record per customer |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | One record per party |
 | `marketing_sms` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `marketing_email` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `marketing_phone` | BOOLEAN | NOT NULL DEFAULT FALSE | |
@@ -301,24 +334,38 @@ Marketing and regulatory consent flags.
 | `consent_aecb` | BOOLEAN | NOT NULL DEFAULT FALSE | Consent to enquire AECB |
 | `consent_source` | VARCHAR(50) | | `BRANCH` \| `DIGITAL` \| `CC` |
 | `consent_date` | DATE | | |
-| `us_relation` | BOOLEAN | | FATCA: US person flag |
-| `tin_number` | VARCHAR(50) | | Tax Identification Number |
-| `fatca_status` | VARCHAR(30) | | |
-| `crs_category` | VARCHAR(30) | | Common Reporting Standard category |
-| `crs_criteria` | VARCHAR(200) | | |
 | `updated_at` | TIMESTAMP | NOT NULL | |
 | `updated_by` | UUID | FK → EMPLOYEE | |
 
 ---
 
-### 3.8 CUSTOMER_KYC
+### 3.10 PARTY_COMPLIANCE
 
-Know-Your-Customer record per customer.
+Regulatory and tax compliance data (FATCA / CRS / AML). Kept separate from consent to allow independent governance, access controls, and audit processes.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `compliance_id` | UUID | PK | |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | One record per party |
+| `us_relation` | BOOLEAN | | FATCA: US person / entity flag |
+| `tin_number` | VARCHAR(50) | | Tax Identification Number |
+| `fatca_status` | VARCHAR(30) | | e.g. `US_PERSON` \| `NON_US_PERSON` \| `RECALCITRANT` |
+| `crs_category` | VARCHAR(30) | | Common Reporting Standard category |
+| `crs_criteria` | VARCHAR(200) | | Criteria for classification |
+| `criteria_us_entity` | VARCHAR(200) | | Criteria used for US entity classification |
+| `updated_at` | TIMESTAMP | NOT NULL | |
+| `updated_by` | UUID | FK → EMPLOYEE | |
+
+---
+
+### 3.11 PARTY_KYC
+
+Know-Your-Customer record per party.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `kyc_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER UNIQUE NOT NULL | |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | |
 | `kyc_held` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `kyc_review_date` | DATE | | |
 | `expected_monthly_credit_turnover` | NUMERIC(18,2) | | |
@@ -330,14 +377,14 @@ Know-Your-Customer record per customer.
 
 ---
 
-### 3.9 CUSTOMER_CHANNEL_SUBSCRIPTION
+### 3.12 PARTY_CHANNEL_SUBSCRIPTION
 
 Digital channel enrolment.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `subscription_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER UNIQUE NOT NULL | |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | |
 | `internet_banking` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `wap_banking` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `sms_banking` | BOOLEAN | NOT NULL DEFAULT FALSE | |
@@ -359,14 +406,14 @@ Digital channel enrolment.
 
 ---
 
-### 3.10 ONLINE_BANKING_SUBSCRIPTION_HISTORY
+### 3.13 PARTY_CHANNEL_SUBSCRIPTION_HISTORY
 
-Audit log for online banking changes.
+Audit log for online banking / digital channel changes.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `history_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `action` | VARCHAR(50) | NOT NULL | `ENROL` \| `SUSPEND` \| `RESET_PASSWORD` \| `UNLOCK` etc. |
 | `reason_code` | VARCHAR(50) | | |
 | `action_by` | UUID | FK → EMPLOYEE | |
@@ -376,12 +423,12 @@ Audit log for online banking changes.
 
 ---
 
-### 3.11 CUSTOMER_BLACKLIST_DETAIL
+### 3.14 PARTY_BLACKLIST_DETAIL
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `blacklist_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `reason_code` | VARCHAR(50) | NOT NULL | |
 | `commencement_date` | DATE | NOT NULL | |
 | `expiry_date` | DATE | | |
@@ -393,12 +440,12 @@ Audit log for online banking changes.
 
 ---
 
-### 3.12 CUSTOMER_NEGATED_DETAIL
+### 3.15 PARTY_NEGATED_DETAIL
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `negated_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `reason_code` | VARCHAR(50) | NOT NULL | |
 | `commencement_date` | DATE | NOT NULL | |
 | `status` | VARCHAR(20) | NOT NULL | |
@@ -408,15 +455,15 @@ Audit log for online banking changes.
 
 ---
 
-### 3.13 CUSTOMER_RELATIONSHIP
+### 3.16 PARTY_RELATIONSHIP
 
-Self-referencing table for all inter-customer links.
+Self-referencing table for all inter-party links.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `relationship_id` | UUID | PK | |
-| `primary_customer_id` | UUID | FK → CUSTOMER NOT NULL | Account holder / main entity |
-| `related_customer_id` | UUID | FK → CUSTOMER NOT NULL | Related party |
+| `primary_party_id` | UUID | FK → PARTY NOT NULL | Account holder / main entity |
+| `related_party_id` | UUID | FK → PARTY NOT NULL | Related party |
 | `relationship_type` | VARCHAR(50) | NOT NULL | `JOINT_HOLDER` \| `GUARANTOR` \| `CO_APPLICANT` \| `AUTHORIZED_REP` \| `DIRECTOR` \| `SHAREHOLDER` \| `GROUP_MEMBER` \| `POWER_OF_ATTORNEY` |
 | `bank_relation_type` | VARCHAR(50) | | |
 | `relationship_with_entity` | VARCHAR(100) | | e.g. `SPOUSE` \| `PARENT` \| `SIBLING` |
@@ -431,16 +478,16 @@ Self-referencing table for all inter-customer links.
 
 ---
 
-### 3.14 AUTHORIZED_REPRESENTATIVE
+### 3.17 AUTHORIZED_REPRESENTATIVE
 
 Per account-level authorizations (separate from customer-level relationships).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `auth_rep_id` | UUID | PK | |
-| `account_id` | UUID | FK → ACCOUNT | Null if customer-level |
-| `customer_id` | UUID | FK → CUSTOMER | Parent customer |
-| `rep_customer_id` | UUID | FK → CUSTOMER | Representative's CIF (if banked) |
+| `account_id` | UUID | FK → ACCOUNT | Null if party-level |
+| `party_id` | UUID | FK → PARTY | Parent party |
+| `rep_party_id` | UUID | FK → PARTY | Representative's CIF (if banked) |
 | `rep_name` | VARCHAR(300) | NOT NULL | |
 | `rep_designation` | VARCHAR(100) | | |
 | `document_type` | VARCHAR(30) | | |
@@ -456,7 +503,7 @@ Per account-level authorizations (separate from customer-level relationships).
 
 ---
 
-### 3.15 SEGMENT
+### 3.18 SEGMENT
 
 Lookup / reference table for customer segmentation.
 
@@ -474,7 +521,7 @@ Lookup / reference table for customer segmentation.
 
 ---
 
-### 3.16 EMPLOYEE
+### 3.19 EMPLOYEE
 
 Bank staff: RMs, branch agents, CC agents.
 
@@ -493,7 +540,7 @@ Bank staff: RMs, branch agents, CC agents.
 
 ---
 
-### 3.17 BRANCH
+### 3.20 BRANCH
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -507,14 +554,14 @@ Bank staff: RMs, branch agents, CC agents.
 
 ---
 
-### 3.18 CUSTOMER_PORTFOLIO_SUMMARY
+### 3.21 PARTY_PORTFOLIO_SUMMARY
 
 Denormalised Mini-360 portfolio KPIs — refreshed asynchronously.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `portfolio_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER UNIQUE NOT NULL | |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | |
 | `portfolio_aggregated_value` | NUMERIC(20,2) | | Total AED equivalent |
 | `accounts_count` | INTEGER | | |
 | `accounts_total_available_balance` | NUMERIC(20,2) | | |
@@ -539,14 +586,14 @@ Denormalised Mini-360 portfolio KPIs — refreshed asynchronously.
 
 ---
 
-### 3.19 CUSTOMER_ANALYTICS
+### 3.22 PARTY_ANALYTICS
 
 AI/Analytics-derived data (sentiment, propensity, churn).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `analytics_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER UNIQUE NOT NULL | |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | |
 | `sentiment_score` | NUMERIC(5,2) | | −1 to +1 scale |
 | `sentiment_label` | VARCHAR(20) | | `POSITIVE` \| `NEUTRAL` \| `NEGATIVE` |
 | `churn_risk_score` | NUMERIC(5,2) | | 0–100 |
@@ -558,14 +605,14 @@ AI/Analytics-derived data (sentiment, propensity, churn).
 
 ---
 
-### 3.20 CUSTOMER_PREFERENTIAL_RATE
+### 3.23 PARTY_PREFERENTIAL_RATE
 
-FX / interest preferential rates offered to high-value customers.
+FX / interest preferential rates offered to high-value parties.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `rate_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `currency` | CHAR(3) | NOT NULL | ISO 4217 |
 | `credit_discount_pct` | NUMERIC(6,4) | | |
 | `debit_discount_pct` | NUMERIC(6,4) | | |
@@ -574,14 +621,14 @@ FX / interest preferential rates offered to high-value customers.
 
 ---
 
-### 3.21 CUSTOMER_REFERENCE *(Individual only)*
+### 3.24 PARTY_REFERENCE *(Individual only)*
 
 Emergency / personal references.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `reference_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `friend_name` | VARCHAR(300) | | |
 | `office_telephone` | VARCHAR(20) | | |
 | `residence_telephone` | VARCHAR(20) | | |
@@ -589,14 +636,14 @@ Emergency / personal references.
 
 ---
 
-### 3.22 DOCUMENT
+### 3.25 DOCUMENT
 
 Generic document store — polymorphic (customer, account, loan, limit, etc.).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `document_id` | UUID | PK | |
-| `entity_type` | VARCHAR(30) | NOT NULL | `CUSTOMER` \| `ACCOUNT` \| `LOAN` \| `CREDIT_LIMIT` \| `INVESTMENT` |
+| `entity_type` | VARCHAR(30) | NOT NULL | `PARTY` \| `ACCOUNT` \| `LOAN` \| `CREDIT_LIMIT` \| `INVESTMENT` |
 | `entity_id` | UUID | NOT NULL | FK to the owning entity (polymorphic) |
 | `document_code` | VARCHAR(30) | NOT NULL | Finacle document code |
 | `document_name` | VARCHAR(200) | | |
@@ -641,7 +688,7 @@ Current, savings, and overdraft accounts.
 | `account_id` | UUID | PK | |
 | `account_number` | VARCHAR(20) | UNIQUE NOT NULL | Finacle account ID |
 | `iban_number` | VARCHAR(34) | UNIQUE | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | Primary account holder |
+| `party_id` | UUID | FK → PARTY NOT NULL | Primary account holder |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `account_name` | VARCHAR(300) | | |
 | `account_status` | VARCHAR(30) | NOT NULL | `ACTIVE` \| `DORMANT` \| `FROZEN` \| `CLOSED` |
@@ -884,7 +931,7 @@ Fixed/term deposits.
 |--------|------|-------------|-------------|
 | `deposit_id` | UUID | PK | |
 | `deposit_account_number` | VARCHAR(20) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `linked_account_id` | UUID | FK → ACCOUNT | Linked current/savings account |
 | `currency` | CHAR(3) | NOT NULL | |
@@ -916,7 +963,7 @@ Fixed/term deposits.
 | `card_type` | ENUM | NOT NULL | `DEBIT` \| `CREDIT` \| `PREPAID` \| `DIGITAL_ACCESS` |
 | `card_number_masked` | VARCHAR(19) | NOT NULL | e.g. `****-****-****-1234` |
 | `card_number_token` | VARCHAR(64) | UNIQUE NOT NULL | Tokenised PAN (never store clear PAN) |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | Primary cardholder |
+| `party_id` | UUID | FK → PARTY NOT NULL | Primary cardholder |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `card_status` | VARCHAR(20) | NOT NULL | `ACTIVE` \| `BLOCKED` \| `EXPIRED` \| `CANCELLED` \| `LOST` \| `STOLEN` |
 | `card_expiry_date` | CHAR(5) | | `MM/YY` |
@@ -1139,7 +1186,7 @@ Buy-now-pay-later / easy payment plans.
 | `supp_card_id` | UUID | PK | |
 | `primary_card_id` | UUID | FK → CREDIT_CARD NOT NULL | |
 | `supplementary_card_number_token` | VARCHAR(64) | UNIQUE NOT NULL | |
-| `supplementary_customer_id` | UUID | FK → CUSTOMER | |
+| `supplementary_party_id` | UUID | FK → PARTY | |
 | `supplementary_cif_number` | VARCHAR(20) | | |
 | `supplementary_customer_name` | VARCHAR(300) | | |
 | `card_expiry_date` | CHAR(5) | | |
@@ -1193,7 +1240,7 @@ Personal, auto, and home loans.
 | `loan_id` | UUID | PK | |
 | `agreement_number` | VARCHAR(30) | UNIQUE NOT NULL | |
 | `agreement_id` | VARCHAR(30) | UNIQUE | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `product_category` | VARCHAR(30) | NOT NULL | `PERSONAL` \| `AUTO` \| `HOME` \| `OTHER` |
 | `currency` | CHAR(3) | NOT NULL | |
@@ -1269,7 +1316,7 @@ Supports retail and SME loan guarantors / co-applicants.
 | `loan_entity_type` | ENUM | NOT NULL | `RETAIL_LOAN` \| `SME_LOAN` \| `ISLAMIC_FINANCE` |
 | `loan_entity_id` | UUID | NOT NULL | Polymorphic FK |
 | `applicant_type` | VARCHAR(30) | NOT NULL | `GUARANTOR` \| `CO_APPLICANT` \| `KEYMAN` |
-| `customer_id` | UUID | FK → CUSTOMER | If existing customer |
+| `party_id` | UUID | FK → PARTY | If existing customer |
 | `name` | VARCHAR(300) | | If non-customer |
 | `relation` | VARCHAR(50) | | |
 | `cif_number` | VARCHAR(20) | | |
@@ -1340,7 +1387,7 @@ SME and corporate term loans, revolving credit, and OD facilities.
 |--------|------|-------------|-------------|
 | `sme_loan_id` | UUID | PK | |
 | `product_number` | VARCHAR(30) | UNIQUE NOT NULL | Finacle account ID |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `product_type` | VARCHAR(30) | NOT NULL | `TERM` \| `OD` \| `REVOLVING` \| `DEMAND_LOAN` |
 | `currency` | CHAR(3) | NOT NULL | |
@@ -1394,7 +1441,7 @@ Group / customer-level credit facilities (SME/Corporate).
 |--------|------|-------------|-------------|
 | `limit_id` | UUID | PK | |
 | `limit_reference` | VARCHAR(50) | UNIQUE NOT NULL | Finacle Limit ID |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `sme_loan_id` | UUID | FK → SME_LOAN | Associated loan |
 | `level_number` | VARCHAR(20) | | Hierarchy level in credit structure |
 | `serial_number` | INTEGER | | |
@@ -1484,7 +1531,7 @@ Shariah-compliant financing products (Murabaha, Ijara, Diminishing Musharakah, e
 |--------|------|-------------|-------------|
 | `islamic_finance_id` | UUID | PK | |
 | `agreement_id` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `scheme` | VARCHAR(50) | | `MURABAHA` \| `IJARA` \| `DIM_MUSHARAKAH` \| `WAKALA` |
 | `currency` | CHAR(3) | NOT NULL | |
@@ -1512,7 +1559,7 @@ SME/Corporate trade finance instruments (LCs, LGs, etc.).
 |--------|------|-------------|-------------|
 | `trade_finance_id` | UUID | PK | |
 | `product_number` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `scheme_code` | VARCHAR(30) | | |
 | `scheme_description` | VARCHAR(200) | | |
@@ -1537,7 +1584,7 @@ Customer-level investment wrapper.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `investment_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER UNIQUE NOT NULL | |
+| `party_id` | UUID | FK → PARTY UNIQUE NOT NULL | |
 | `risk_profile_category` | VARCHAR(30) | | `CONSERVATIVE` \| `MODERATE` \| `AGGRESSIVE` |
 | `final_risk_profile_category` | VARCHAR(30) | | |
 | `risk_profile_score` | NUMERIC(5,2) | | |
@@ -1632,7 +1679,7 @@ Standalone (non-investment) insurance policies.
 |--------|------|-------------|-------------|
 | `policy_id` | UUID | PK | |
 | `policy_number` | VARCHAR(50) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `product_name` | VARCHAR(200) | NOT NULL | |
 | `plan_name` | VARCHAR(200) | | |
@@ -1717,7 +1764,7 @@ Customer interactions — footprints, communications, and online banking request
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `interaction_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `interaction_type` | VARCHAR(30) | NOT NULL | `FOOTPRINT` \| `COMMUNICATION` \| `OB_REQUEST` |
 | `channel` | VARCHAR(30) | NOT NULL | `BRANCH` \| `CC` \| `DIGITAL` \| `ATM` \| `MOBILE` \| `CHAT` |
 | `interaction_datetime` | TIMESTAMP | NOT NULL | |
@@ -1773,7 +1820,7 @@ CRM service requests (servicing tasks assigned to staff).
 |--------|------|-------------|-------------|
 | `service_request_id` | UUID | PK | |
 | `reference_number` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `request_type` | VARCHAR(100) | NOT NULL | |
 | `request_sub_type` | VARCHAR(100) | | |
 | `assigned_group` | VARCHAR(100) | | |
@@ -1798,7 +1845,7 @@ Sales leads for existing customers and prospects.
 |--------|------|-------------|-------------|
 | `lead_id` | UUID | PK | |
 | `lead_reference_number` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER | Null if prospect |
+| `party_id` | UUID | FK → PARTY | Null if prospect |
 | `customer_cif` | VARCHAR(20) | | |
 | `prospect_cif` | VARCHAR(20) | | |
 | `product_id` | UUID | FK → PRODUCT | |
@@ -1818,14 +1865,14 @@ Sales leads for existing customers and prospects.
 
 ---
 
-### 7.6 CUSTOMER_PACKAGE
+### 7.6 PARTY_PACKAGE
 
 RAKValue / loyalty packages.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `package_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `package_name` | VARCHAR(100) | NOT NULL | |
 | `enrollment_account_id` | UUID | FK → ACCOUNT | |
 | `status` | VARCHAR(20) | NOT NULL | `ACTIVE` \| `EXPIRED` \| `CANCELLED` |
@@ -1839,7 +1886,7 @@ RAKValue / loyalty packages.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `change_id` | UUID | PK | |
-| `package_id` | UUID | FK → CUSTOMER_PACKAGE NOT NULL | |
+| `package_id` | UUID | FK → PARTY_PACKAGE NOT NULL | |
 | `old_package_name` | VARCHAR(100) | | |
 | `new_package_name` | VARCHAR(100) | | |
 | `date_of_change` | DATE | NOT NULL | |
@@ -1852,7 +1899,7 @@ RAKValue / loyalty packages.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `utilization_id` | UUID | PK | |
-| `package_id` | UUID | FK → CUSTOMER_PACKAGE NOT NULL | |
+| `package_id` | UUID | FK → PARTY_PACKAGE NOT NULL | |
 | `utilization_type` | ENUM | NOT NULL | `FINANCIAL` \| `NON_FINANCIAL` |
 | `transaction_type` | VARCHAR(50) | | |
 | `description` | VARCHAR(200) | | |
@@ -1891,7 +1938,7 @@ eStatement delivery tracking.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `delivery_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `record_id` | VARCHAR(50) | | |
 | `product_entity_type` | VARCHAR(30) | | `ACCOUNT` \| `CREDIT_CARD` \| `LOAN` \| `DEPOSIT` |
 | `product_number` | VARCHAR(30) | | |
@@ -1909,7 +1956,7 @@ eStatement delivery tracking.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `tax_delivery_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `tax_invoice_number` | VARCHAR(50) | | |
 | `tax_credit_note_number` | VARCHAR(50) | | |
 | `email_address` | VARCHAR(254) | | |
@@ -1926,7 +1973,7 @@ Tracking of card / cheque book / document physical deliveries.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `delivery_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `booking_date` | DATE | NOT NULL | |
 | `booking_number` | VARCHAR(50) | UNIQUE NOT NULL | |
 | `delivery_type` | VARCHAR(30) | | `CARD` \| `CHEQUE_BOOK` \| `LETTER` \| `DOCUMENT` |
@@ -1969,7 +2016,7 @@ Disputes raised on cards or accounts.
 |--------|------|-------------|-------------|
 | `dispute_id` | UUID | PK | |
 | `dispute_number` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `card_id` | UUID | FK → CARD | |
 | `account_id` | UUID | FK → ACCOUNT | |
 | `dispute_reason` | VARCHAR(200) | NOT NULL | |
@@ -1995,7 +2042,7 @@ Digital onboarding application records (prospect to customer).
 | `cheque_book_required` | BOOLEAN | | |
 | `debit_card_required` | BOOLEAN | | |
 | `is_stp` | BOOLEAN | | Straight-through processing |
-| `converted_customer_id` | UUID | FK → CUSTOMER | Once onboarded |
+| `converted_party_id` | UUID | FK → PARTY | Once onboarded |
 | `created_at` | TIMESTAMP | NOT NULL | |
 | `updated_at` | TIMESTAMP | NOT NULL | |
 
@@ -2009,7 +2056,7 @@ Physical credit card applications processed by CC / branch.
 |--------|------|-------------|-------------|
 | `application_id` | UUID | PK | |
 | `application_number` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `customer_id` | UUID | FK → CUSTOMER | Null if new applicant |
+| `party_id` | UUID | FK → PARTY | Null if new applicant |
 | `cif_number` | VARCHAR(20) | | |
 | `customer_name` | VARCHAR(300) | | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
@@ -2065,7 +2112,7 @@ Captures inputs and outputs from CRM calculators (for audit and lead follow-up).
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `session_id` | UUID | PK | |
-| `customer_id` | UUID | FK → CUSTOMER NOT NULL | |
+| `party_id` | UUID | FK → PARTY NOT NULL | |
 | `calculator_type` | VARCHAR(30) | NOT NULL | `CC_QUICK_CASH` \| `CC_CASH_ON_CALL` \| `PERSONAL_LOAN` \| `FX_RATE` |
 | `input_json` | JSONB | NOT NULL | Inputs (principle, tenure, rate etc.) |
 | `output_json` | JSONB | | Results (EMI, total interest, schedule etc.) |
@@ -2078,65 +2125,68 @@ Captures inputs and outputs from CRM calculators (for audit and lead follow-up).
 
 | Relationship | Cardinality | Notes |
 |---|---|---|
-| CUSTOMER → INDIVIDUAL_CUSTOMER | 1:0..1 | Subtype — joined on `customer_id` |
-| CUSTOMER → CORPORATE_CUSTOMER | 1:0..1 | Subtype — joined on `customer_id` |
-| CORPORATE_CUSTOMER → CORPORATE_GROUP | M:1 | Group-level structure |
-| CUSTOMER → CUSTOMER_IDENTIFICATION | 1:M | Multiple ID documents per CIF |
-| CUSTOMER → CUSTOMER_CONTACT | 1:M | Phones, emails, addresses |
-| CUSTOMER → CUSTOMER_CONSENT | 1:1 | Single consent record per CIF |
-| CUSTOMER → CUSTOMER_KYC | 1:1 | |
-| CUSTOMER → CUSTOMER_CHANNEL_SUBSCRIPTION | 1:1 | |
-| CUSTOMER → CUSTOMER_RELATIONSHIP | M:M (self) | Via junction table |
-| CUSTOMER → CUSTOMER_PORTFOLIO_SUMMARY | 1:1 | Materialised for Mini-360 |
-| CUSTOMER → CUSTOMER_ANALYTICS | 1:1 | AI/analytics derived |
-| CUSTOMER → SEGMENT | M:1 | Segment + sub-segment |
-| CUSTOMER → EMPLOYEE (RM) | M:1 | Primary and secondary RMs |
-| CUSTOMER → ACCOUNT | 1:M | |
+| PARTY → PARTY_INDIVIDUAL | 1:0..1 | Subtype — joined on `party_id` |
+| PARTY → PARTY_CORPORATE | 1:0..1 | Subtype — joined on `party_id` |
+| PARTY_CORPORATE → CORPORATE_GROUP | M:1 | Group-level structure |
+| PARTY → PARTY_IDENTIFICATION | 1:M | Multiple ID documents per CIF |
+| PARTY → PARTY_PHONE | 1:M | Multiple phone numbers |
+| PARTY → PARTY_EMAIL | 1:M | Multiple email addresses |
+| PARTY → PARTY_ADDRESS | 1:M | Multiple physical/postal addresses |
+| PARTY → PARTY_CONSENT | 1:1 | Single marketing consent record per party |
+| PARTY → PARTY_COMPLIANCE | 1:1 | Single regulatory compliance record per party |
+| PARTY → PARTY_KYC | 1:1 | |
+| PARTY → PARTY_CHANNEL_SUBSCRIPTION | 1:1 | |
+| PARTY → PARTY_RELATIONSHIP | M:M (self) | Via junction table |
+| PARTY → PARTY_PORTFOLIO_SUMMARY | 1:1 | Materialised for Mini-360 |
+| PARTY → PARTY_ANALYTICS | 1:1 | AI/analytics derived |
+| PARTY → SEGMENT | M:1 | Segment + sub-segment |
+| PARTY → EMPLOYEE (RM) | M:1 | Primary and secondary RMs |
+| PARTY → ACCOUNT | 1:M | |
 | ACCOUNT → ACCOUNT_BALANCE | 1:1 | |
 | ACCOUNT → ACCOUNT_TRANSACTION | 1:M | Partitioned |
 | ACCOUNT → ACCOUNT_LIEN | 1:M | |
 | ACCOUNT → CHEQUE_BOOK → CHEQUE_LEAF | 1:M:M | |
 | ACCOUNT → STANDING_INSTRUCTION | 1:M | |
 | ACCOUNT → TRANSFER_REMITTANCE | 1:M | As debit account |
-| CUSTOMER → DEPOSIT | 1:M | |
-| CUSTOMER → CARD (DEBIT/PREPAID/CREDIT/DAC) | 1:M | Via CARD supertype |
+| PARTY → DEPOSIT | 1:M | |
+| PARTY → CARD (DEBIT/PREPAID/CREDIT/DAC) | 1:M | Via CARD supertype |
 | CARD → CARD_AUTHORIZATION_TRANSACTION | 1:M | |
 | CARD → CARD_TOKEN | 1:M | Multiple wallets |
 | CREDIT_CARD → CREDIT_CARD_BALANCE | 1:1 | |
 | CREDIT_CARD → CREDIT_CARD_STATEMENT | 1:M | Monthly |
 | CREDIT_CARD → CREDIT_CARD_INSTALLMENT → INSTALLMENT_SCHEDULE | 1:M:M | |
 | CREDIT_CARD → SUPPLEMENTARY_CARD | 1:M | |
-| CUSTOMER → RETAIL_LOAN | 1:M | |
+| PARTY → RETAIL_LOAN | 1:M | |
 | RETAIL_LOAN → RETAIL_LOAN_AUTO_DETAILS | 1:0..1 | |
 | RETAIL_LOAN → RETAIL_LOAN_HOME_DETAILS | 1:0..1 | |
 | RETAIL_LOAN → RETAIL_LOAN_REPAYMENT_SCHEDULE | 1:M | |
-| CUSTOMER → SME_LOAN | 1:M | |
+| PARTY → SME_LOAN | 1:M | |
 | SME_LOAN → CREDIT_LIMIT | 1:M | |
 | CREDIT_LIMIT → CREDIT_LIMIT_COLLATERAL | 1:M | |
-| CUSTOMER → ISLAMIC_FINANCE | 1:M | |
-| CUSTOMER → TRADE_FINANCE | 1:M | |
-| CUSTOMER → INVESTMENT_PORTFOLIO | 1:1 | |
+| PARTY → ISLAMIC_FINANCE | 1:M | |
+| PARTY → TRADE_FINANCE | 1:M | |
+| PARTY → INVESTMENT_PORTFOLIO | 1:1 | |
 | INVESTMENT_PORTFOLIO → INVESTMENT_ASSET | 1:M | |
 | INVESTMENT_ASSET → INVESTMENT_INSURANCE | 1:0..1 | Investment-linked insurance |
-| CUSTOMER → INSURANCE_POLICY | 1:M | |
+| PARTY → INSURANCE_POLICY | 1:M | |
 | INSURANCE_POLICY → INSURANCE_BENEFICIARY | 1:M | |
 | INSURANCE_POLICY → INSURANCE_PAYMENT | 1:M | |
 | INSURANCE_POLICY → INSURANCE_TRANSACTION | 1:M | |
-| CUSTOMER → INTERACTION | 1:M | Footprints, comms |
-| CUSTOMER → SERVICE_REQUEST | 1:M | |
-| CUSTOMER → LEAD | 1:M | |
-| CUSTOMER → CUSTOMER_PACKAGE | 1:M | |
-| CUSTOMER_PACKAGE → PACKAGE_UTILIZATION | 1:M | |
-| CUSTOMER → DOCUMENT | 1:M (polymorphic) | |
+| PARTY → INTERACTION | 1:M | Footprints, comms |
+| PARTY → SERVICE_REQUEST | 1:M | |
+| PARTY → LEAD | 1:M | |
+| PARTY → PARTY_PACKAGE | 1:M | |
+| PARTY_PACKAGE → PACKAGE_UTILIZATION | 1:M | |
+| PARTY → DOCUMENT | 1:M (polymorphic) | |
 
 ---
 
 ## 10. Key Design Decisions
 
-### 10.1 Party / Customer Hierarchy (Single Table Inheritance + Joined Tables)
+### 10.1 Party Hierarchy (Joined Subtypes)
 
-Using a **supertype CUSTOMER** table with two subtype tables (`INDIVIDUAL_CUSTOMER`, `CORPORATE_CUSTOMER`) joined on `customer_id`. This cleanly supports:
-- Joint accounts (both parties are CUSTOMERs)
+Using a **supertype `PARTY`** table with two subtype tables (`PARTY_INDIVIDUAL`, `PARTY_CORPORATE`) joined on `party_id`. The supertype holds **only universally applicable attributes** (status, blacklist flag, language, RM, segment, risk). Individual-specific flags (`is_vip`, `is_royal`, `is_minor`, `is_special_needs`, `is_pep`, `party_classification`) live exclusively in `PARTY_INDIVIDUAL`; corporate-specific fields in `PARTY_CORPORATE`. This cleanly supports:
+- Joint accounts (both parties are `PARTY` rows)
 - Corporate customers with individual directors/shareholders
 - Shared segments, contacts, and channel subscriptions
 
@@ -2161,7 +2211,7 @@ The `CARD` entity stores `card_number_masked` (for display) and `card_number_tok
 
 ### 10.6 Calculated / Denormalised Fields
 
-`CUSTOMER_PORTFOLIO_SUMMARY` intentionally denormalises portfolio aggregates to power sub-second Mini-360 (Level-0) rendering. These fields are refreshed asynchronously via an event-driven pipeline triggered by product state changes in core banking.
+`PARTY_PORTFOLIO_SUMMARY` intentionally denormalises portfolio aggregates to power sub-second Mini-360 (Level-0) rendering. These fields are refreshed asynchronously via an event-driven pipeline triggered by product state changes in core banking.
 
 ### 10.7 Multi-source Data
 
@@ -2173,4 +2223,4 @@ All mutable entities carry `created_at`, `updated_at`, `created_by`, `updated_by
 
 ---
 
-*End of Data Model — RAKBANK CRM 360 Logical Model v1.0*
+*End of Data Model — RAKBANK CRM 360 Logical Model v1.1*

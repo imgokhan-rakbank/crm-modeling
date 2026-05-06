@@ -2,10 +2,10 @@
 erDiagram
 
   %% ─────────────────────────────────────────────────────────
-  %% DOMAIN: CUSTOMER & PARTY
+  %% DOMAIN: PARTY
   %% ─────────────────────────────────────────────────────────
 
-  CUSTOMER {
+  PARTY {
     uuid customer_id PK
     varchar cif_number UK
     enum customer_type
@@ -30,8 +30,15 @@ erDiagram
     timestamp updated_at
   }
 
-  INDIVIDUAL_CUSTOMER {
-    uuid customer_id PK
+  PARTY_INDIVIDUAL {
+    uuid party_id PK
+    boolean is_vip
+    boolean is_royal
+    boolean is_minor
+    boolean is_special_needs
+    boolean is_pep
+    varchar party_classification
+    varchar party_special_status
     varchar title
     varchar first_name
     varchar middle_name
@@ -53,8 +60,8 @@ erDiagram
     text notes
   }
 
-  CORPORATE_CUSTOMER {
-    uuid customer_id PK
+  PARTY_CORPORATE {
+    uuid party_id PK
     varchar company_name
     varchar short_name
     char country_of_incorporation
@@ -77,9 +84,9 @@ erDiagram
     boolean is_active
   }
 
-  CUSTOMER_IDENTIFICATION {
+  PARTY_IDENTIFICATION {
     uuid identification_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar document_type
     varchar document_number
     date issue_date
@@ -91,44 +98,75 @@ erDiagram
     timestamp updated_at
   }
 
-  CUSTOMER_CONTACT {
-    uuid contact_id PK
-    uuid customer_id FK
-    enum contact_category
-    boolean is_preferred
-    boolean is_active
+  PARTY_PHONE {
+    uuid phone_id PK
+    uuid party_id FK
     varchar phone_number
     varchar phone_type
     varchar country_code
-    varchar email_address
-    varchar address_line_1
-    varchar city
-    char country
-    varchar po_box
-    varchar address_type
+    varchar area_code
+    boolean is_preferred
+    boolean is_active
     timestamp created_at
     timestamp updated_at
   }
 
-  CUSTOMER_CONSENT {
+  PARTY_EMAIL {
+    uuid email_id PK
+    uuid party_id FK
+    varchar email_address
+    varchar email_type
+    boolean is_preferred
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PARTY_ADDRESS {
+    uuid address_id PK
+    uuid party_id FK
+    varchar address_type
+    varchar address_line_1
+    varchar address_line_2
+    varchar city
+    char country
+    varchar postal_code
+    varchar po_box
+    boolean is_preferred
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PARTY_CONSENT {
     uuid consent_id PK
-    uuid customer_id FK
+    uuid party_id FK
     boolean marketing_sms
     boolean marketing_email
     boolean marketing_phone
+    boolean group_sms
+    boolean group_email
+    boolean group_phone
     boolean consent_aecb
     varchar consent_source
     date consent_date
+    timestamp updated_at
+  }
+
+  PARTY_COMPLIANCE {
+    uuid compliance_id PK
+    uuid party_id FK
     boolean us_relation
     varchar tin_number
     varchar fatca_status
     varchar crs_category
+    varchar crs_criteria
     timestamp updated_at
   }
 
-  CUSTOMER_KYC {
+  PARTY_KYC {
     uuid kyc_id PK
-    uuid customer_id FK
+    uuid party_id FK
     boolean kyc_held
     date kyc_review_date
     numeric expected_monthly_credit_turnover
@@ -138,9 +176,9 @@ erDiagram
     timestamp updated_at
   }
 
-  CUSTOMER_CHANNEL_SUBSCRIPTION {
+  PARTY_CHANNEL_SUBSCRIPTION {
     uuid subscription_id PK
-    uuid customer_id FK
+    uuid party_id FK
     boolean internet_banking
     boolean sms_banking
     boolean e_statement
@@ -153,9 +191,9 @@ erDiagram
     timestamp updated_at
   }
 
-  CUSTOMER_BLACKLIST_DETAIL {
+  PARTY_BLACKLIST_DETAIL {
     uuid blacklist_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar reason_code
     date commencement_date
     date expiry_date
@@ -164,9 +202,9 @@ erDiagram
     timestamp created_at
   }
 
-  CUSTOMER_NEGATED_DETAIL {
+  PARTY_NEGATED_DETAIL {
     uuid negated_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar reason_code
     date commencement_date
     varchar status
@@ -174,7 +212,7 @@ erDiagram
     timestamp created_at
   }
 
-  CUSTOMER_RELATIONSHIP {
+  PARTY_RELATIONSHIP {
     uuid relationship_id PK
     uuid primary_customer_id FK
     uuid related_customer_id FK
@@ -188,9 +226,9 @@ erDiagram
     timestamp created_at
   }
 
-  CUSTOMER_PORTFOLIO_SUMMARY {
+  PARTY_PORTFOLIO_SUMMARY {
     uuid portfolio_id PK
-    uuid customer_id FK
+    uuid party_id FK
     numeric portfolio_aggregated_value
     integer accounts_count
     numeric accounts_total_available_balance
@@ -211,9 +249,9 @@ erDiagram
     timestamp last_refreshed_at
   }
 
-  CUSTOMER_ANALYTICS {
+  PARTY_ANALYTICS {
     uuid analytics_id PK
-    uuid customer_id FK
+    uuid party_id FK
     numeric sentiment_score
     varchar sentiment_label
     numeric churn_risk_score
@@ -277,7 +315,7 @@ erDiagram
     uuid account_id PK
     varchar account_number UK
     varchar iban_number UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar account_name
     varchar account_status
@@ -412,7 +450,7 @@ erDiagram
   DEPOSIT {
     uuid deposit_id PK
     varchar deposit_account_number UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     uuid linked_account_id FK
     char currency
@@ -435,7 +473,7 @@ erDiagram
     enum card_type
     varchar card_number_masked
     varchar card_number_token UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar card_status
     char card_expiry_date
@@ -559,7 +597,7 @@ erDiagram
     uuid supp_card_id PK
     uuid primary_card_id FK
     varchar supplementary_card_number_token UK
-    uuid supplementary_customer_id FK
+    uuid supplementary_party_id FK
     varchar supplementary_customer_name
     char card_expiry_date
     varchar card_status
@@ -581,7 +619,7 @@ erDiagram
   AUTHORIZED_REPRESENTATIVE {
     uuid auth_rep_id PK
     uuid account_id FK
-    uuid customer_id FK
+    uuid party_id FK
     varchar rep_name
     varchar rep_designation
     varchar document_type
@@ -601,7 +639,7 @@ erDiagram
     uuid loan_id PK
     varchar agreement_number UK
     varchar agreement_id UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar product_category
     char currency
@@ -667,7 +705,7 @@ erDiagram
     enum loan_entity_type
     uuid loan_entity_id
     varchar applicant_type
-    uuid customer_id FK
+    uuid party_id FK
     varchar name
     varchar relation
     varchar cif_number
@@ -689,7 +727,7 @@ erDiagram
   SME_LOAN {
     uuid sme_loan_id PK
     varchar product_number UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar product_type
     char currency
@@ -727,7 +765,7 @@ erDiagram
   CREDIT_LIMIT {
     uuid limit_id PK
     varchar limit_reference UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid sme_loan_id FK
     varchar level_number
     integer serial_number
@@ -775,7 +813,7 @@ erDiagram
   ISLAMIC_FINANCE {
     uuid islamic_finance_id PK
     varchar agreement_id UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar scheme
     char currency
@@ -797,7 +835,7 @@ erDiagram
   TRADE_FINANCE {
     uuid trade_finance_id PK
     varchar product_number UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar scheme_code
     varchar scheme_description
@@ -818,7 +856,7 @@ erDiagram
 
   INVESTMENT_PORTFOLIO {
     uuid investment_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar risk_profile_category
     varchar final_risk_profile_category
     numeric risk_profile_score
@@ -880,7 +918,7 @@ erDiagram
   INSURANCE_POLICY {
     uuid policy_id PK
     varchar policy_number UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid product_id FK
     varchar product_name
     varchar plan_name
@@ -942,7 +980,7 @@ erDiagram
 
   INTERACTION {
     uuid interaction_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar interaction_type
     varchar channel
     timestamp interaction_datetime
@@ -961,7 +999,7 @@ erDiagram
   SERVICE_REQUEST {
     uuid service_request_id PK
     varchar reference_number UK
-    uuid customer_id FK
+    uuid party_id FK
     varchar request_type
     varchar request_sub_type
     varchar assigned_group
@@ -980,7 +1018,7 @@ erDiagram
   LEAD {
     uuid lead_id PK
     varchar lead_reference_number UK
-    uuid customer_id FK
+    uuid party_id FK
     varchar customer_cif
     varchar prospect_cif
     uuid product_id FK
@@ -997,9 +1035,9 @@ erDiagram
     uuid created_by FK
   }
 
-  CUSTOMER_PACKAGE {
+  PARTY_PACKAGE {
     uuid package_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar package_name
     uuid enrollment_account_id FK
     varchar status
@@ -1051,7 +1089,7 @@ erDiagram
   DISPUTE_FORM {
     uuid dispute_id PK
     varchar dispute_number UK
-    uuid customer_id FK
+    uuid party_id FK
     uuid card_id FK
     uuid account_id FK
     varchar dispute_reason
@@ -1062,7 +1100,7 @@ erDiagram
 
   CALCULATOR_SESSION {
     uuid session_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar calculator_type
     jsonb input_json
     jsonb output_json
@@ -1082,7 +1120,7 @@ erDiagram
 
   ESTATEMENT_DELIVERY {
     uuid delivery_id PK
-    uuid customer_id FK
+    uuid party_id FK
     varchar record_id
     varchar product_entity_type
     varchar product_number
@@ -1107,28 +1145,31 @@ erDiagram
   %% RELATIONSHIPS
   %% ─────────────────────────────────────────────────────────
 
-  CUSTOMER ||--o| INDIVIDUAL_CUSTOMER : "is-a"
-  CUSTOMER ||--o| CORPORATE_CUSTOMER : "is-a"
-  CORPORATE_CUSTOMER }o--o| CORPORATE_GROUP : "belongs to"
+  PARTY ||--o| PARTY_INDIVIDUAL : "is-a"
+  PARTY ||--o| PARTY_CORPORATE : "is-a"
+  PARTY_CORPORATE }o--o| CORPORATE_GROUP : "belongs to"
   SEGMENT ||--o{ SEGMENT : "parent"
-  CUSTOMER }o--o| SEGMENT : "segment"
-  CUSTOMER }o--o| EMPLOYEE : "primary RM"
-  CUSTOMER }o--o| BRANCH : "home branch"
+  PARTY }o--o| SEGMENT : "segment"
+  PARTY }o--o| EMPLOYEE : "primary RM"
+  PARTY }o--o| BRANCH : "home branch"
   EMPLOYEE }o--o| BRANCH : "works at"
 
-  CUSTOMER ||--o{ CUSTOMER_IDENTIFICATION : "has"
-  CUSTOMER ||--o{ CUSTOMER_CONTACT : "has"
-  CUSTOMER ||--o| CUSTOMER_CONSENT : "has"
-  CUSTOMER ||--o| CUSTOMER_KYC : "has"
-  CUSTOMER ||--o| CUSTOMER_CHANNEL_SUBSCRIPTION : "has"
-  CUSTOMER ||--o{ CUSTOMER_BLACKLIST_DETAIL : "has"
-  CUSTOMER ||--o{ CUSTOMER_NEGATED_DETAIL : "has"
-  CUSTOMER ||--o| CUSTOMER_PORTFOLIO_SUMMARY : "summarised in"
-  CUSTOMER ||--o| CUSTOMER_ANALYTICS : "analysed in"
-  CUSTOMER ||--o{ CUSTOMER_RELATIONSHIP : "primary in"
-  CUSTOMER ||--o{ CUSTOMER_RELATIONSHIP : "related in"
+  PARTY ||--o{ PARTY_IDENTIFICATION : "has"
+  PARTY ||--o{ PARTY_PHONE : "has phones"
+  PARTY ||--o{ PARTY_EMAIL : "has emails"
+  PARTY ||--o{ PARTY_ADDRESS : "has addresses"
+  PARTY ||--o| PARTY_CONSENT : "has"
+  PARTY ||--o| PARTY_COMPLIANCE : "has"
+  PARTY ||--o| PARTY_KYC : "has"
+  PARTY ||--o| PARTY_CHANNEL_SUBSCRIPTION : "has"
+  PARTY ||--o{ PARTY_BLACKLIST_DETAIL : "has"
+  PARTY ||--o{ PARTY_NEGATED_DETAIL : "has"
+  PARTY ||--o| PARTY_PORTFOLIO_SUMMARY : "summarised in"
+  PARTY ||--o| PARTY_ANALYTICS : "analysed in"
+  PARTY ||--o{ PARTY_RELATIONSHIP : "primary in"
+  PARTY ||--o{ PARTY_RELATIONSHIP : "related in"
 
-  CUSTOMER ||--o{ ACCOUNT : "owns"
+  PARTY ||--o{ ACCOUNT : "owns"
   ACCOUNT ||--|| ACCOUNT_BALANCE : "has balance"
   ACCOUNT ||--o| ACCOUNT_INTEREST_CONFIG : "has interest config"
   ACCOUNT ||--o{ ACCOUNT_TRANSACTION : "has transactions"
@@ -1142,11 +1183,11 @@ erDiagram
   ACCOUNT ||--o{ AUTHORIZED_REPRESENTATIVE : "has auth reps"
   ACCOUNT }o--o| BRANCH : "held at"
 
-  CUSTOMER ||--o{ DEPOSIT : "holds"
+  PARTY ||--o{ DEPOSIT : "holds"
   DEPOSIT }o--o| ACCOUNT : "linked to"
   DEPOSIT }o--|| PRODUCT : "of type"
 
-  CUSTOMER ||--o{ CARD : "holds"
+  PARTY ||--o{ CARD : "holds"
   CARD }o--|| PRODUCT : "of type"
   CARD ||--o| DEBIT_CARD : "is-a"
   CARD ||--o| CREDIT_CARD : "is-a"
@@ -1164,7 +1205,7 @@ erDiagram
   CREDIT_CARD ||--o| CREDIT_CARD_REWARDS : "has rewards"
   CREDIT_CARD ||--o{ CREDIT_CARD_INSURANCE : "has insurance"
 
-  CUSTOMER ||--o{ RETAIL_LOAN : "has"
+  PARTY ||--o{ RETAIL_LOAN : "has"
   RETAIL_LOAN }o--|| PRODUCT : "of type"
   RETAIL_LOAN ||--o| RETAIL_LOAN_AUTO_DETAILS : "auto details"
   RETAIL_LOAN ||--o| RETAIL_LOAN_HOME_DETAILS : "home details"
@@ -1172,38 +1213,39 @@ erDiagram
   RETAIL_LOAN ||--o{ LOAN_GUARANTOR : "has guarantors"
   RETAIL_LOAN ||--o{ LOAN_EARLY_CLOSURE : "closure quote"
 
-  CUSTOMER ||--o{ SME_LOAN : "has"
+  PARTY ||--o{ SME_LOAN : "has"
   SME_LOAN }o--|| PRODUCT : "of type"
   SME_LOAN ||--o{ SME_LOAN_DISBURSEMENT : "has disbursements"
   SME_LOAN ||--o{ CREDIT_LIMIT : "has limits"
   SME_LOAN ||--o{ OD_FACILITY : "has OD"
   CREDIT_LIMIT ||--o{ CREDIT_LIMIT_COLLATERAL : "secured by"
 
-  CUSTOMER ||--o{ ISLAMIC_FINANCE : "has"
+  PARTY ||--o{ ISLAMIC_FINANCE : "has"
   ISLAMIC_FINANCE }o--|| PRODUCT : "of type"
 
-  CUSTOMER ||--o{ TRADE_FINANCE : "has"
+  PARTY ||--o{ TRADE_FINANCE : "has"
   TRADE_FINANCE }o--|| PRODUCT : "of type"
 
-  CUSTOMER ||--o| INVESTMENT_PORTFOLIO : "has"
+  PARTY ||--o| INVESTMENT_PORTFOLIO : "has"
   INVESTMENT_PORTFOLIO ||--o{ INVESTMENT_ASSET : "contains"
   INVESTMENT_ASSET ||--o| INVESTMENT_INSURANCE : "may be"
 
-  CUSTOMER ||--o{ INSURANCE_POLICY : "holds"
+  PARTY ||--o{ INSURANCE_POLICY : "holds"
   INSURANCE_POLICY }o--|| PRODUCT : "of type"
   INSURANCE_POLICY ||--o{ INSURANCE_BENEFICIARY : "has"
   INSURANCE_POLICY ||--o{ INSURANCE_PAYMENT : "paid via"
   INSURANCE_POLICY ||--o{ INSURANCE_TRANSACTION : "has txns"
 
-  CUSTOMER ||--o{ INTERACTION : "has"
-  CUSTOMER ||--o{ SERVICE_REQUEST : "raises"
-  CUSTOMER ||--o{ LEAD : "targeted by"
-  CUSTOMER ||--o{ CUSTOMER_PACKAGE : "enrolled in"
-  CUSTOMER_PACKAGE ||--o{ PACKAGE_UTILIZATION : "has utilisation"
-  CUSTOMER ||--o{ DOCUMENT : "has documents"
-  CUSTOMER ||--o{ DISPUTE_FORM : "raises disputes"
-  CUSTOMER ||--o{ CALCULATOR_SESSION : "uses calculators"
-  CUSTOMER ||--o{ ESTATEMENT_DELIVERY : "receives eStatements"
+  PARTY ||--o{ INTERACTION : "has"
+  PARTY ||--o{ SERVICE_REQUEST : "raises"
+  PARTY ||--o{ LEAD : "targeted by"
+  PARTY ||--o{ PARTY_PACKAGE : "enrolled in"
+  PARTY_PACKAGE ||--o{ PACKAGE_UTILIZATION : "has utilisation"
+  PARTY ||--o{ DOCUMENT : "has documents"
+  PARTY ||--o{ DISPUTE_FORM : "raises disputes"
+  PARTY ||--o{ CALCULATOR_SESSION : "uses calculators"
+  PARTY ||--o{ ESTATEMENT_DELIVERY : "receives eStatements"
 
   PRODUCT ||--o{ ACCOUNT : "defines"
+  ACCOUNT }o--o| BRANCH : "held at"
 ```
