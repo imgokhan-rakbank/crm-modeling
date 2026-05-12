@@ -177,23 +177,16 @@ erDiagram
     timestamp updated_at
   }
 
-  PARTY_BLACKLIST_DETAIL {
-    uuid blacklist_id PK
+  PARTY_RESTRICTION {
+    uuid restriction_id PK
     uuid party_id FK
+    enum restriction_type
     varchar reason_code
     date commencement_date
     date expiry_date
     varchar status
     date court_order_date
-    timestamp created_at
-  }
-
-  PARTY_NEGATED_DETAIL {
-    uuid negated_id PK
-    uuid party_id FK
-    varchar reason_code
-    date commencement_date
-    varchar status
+    varchar court_order_number
     varchar unit
     timestamp created_at
   }
@@ -391,7 +384,6 @@ erDiagram
   CHEQUE_LEAF {
     uuid leaf_id PK
     uuid cheque_book_id FK
-    uuid account_id FK
     varchar cheque_number
     varchar status
     date transaction_date
@@ -490,7 +482,6 @@ erDiagram
   CREDIT_CARD {
     uuid card_id PK
     varchar card_account_number
-    varchar product_code
     boolean is_vip_normal
     boolean is_vip_high
     boolean is_staff_account
@@ -1153,8 +1144,7 @@ erDiagram
   PARTY ||--o| PARTY_COMPLIANCE : "has"
   PARTY ||--o| PARTY_KYC : "has"
   PARTY ||--o| PARTY_CHANNEL_SUBSCRIPTION : "has"
-  PARTY ||--o{ PARTY_BLACKLIST_DETAIL : "has"
-  PARTY ||--o{ PARTY_NEGATED_DETAIL : "has"
+  PARTY ||--o{ PARTY_RESTRICTION : "has"
   PARTY ||--o| PARTY_PORTFOLIO_SUMMARY : "summarised in"
   PARTY ||--o| PARTY_ANALYTICS : "analysed in"
   PARTY ||--o{ PARTY_RELATIONSHIP : "primary in"

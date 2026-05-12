@@ -1,6 +1,6 @@
 # Banking CRM 360 — Logical Data Model
 
-> **Version:** 1.2  
+> **Version:** 1.3  
 > **Date:** May 2026  
 > **Source:** CRM Field Requirements v1.1 — Levels & Navigation for Data Modelling  
 > **Scope:** RAKBANK CRM 360 — Individual & Corporate customers, all product lines
@@ -51,6 +51,7 @@ PARTY ────────────────────────�
       ├── PARTY_COMPLIANCE
       ├── PARTY_KYC
       ├── PARTY_CHANNEL_SUBSCRIPTION
+      ├── PARTY_RESTRICTION
       ├── PARTY_ANALYTICS
       ├── PARTY_PORTFOLIO_SUMMARY
       │
@@ -254,7 +255,7 @@ Multiple identification documents per party.
 | `created_at` | TIMESTAMP | NOT NULL | |
 | `updated_at` | TIMESTAMP | NOT NULL | |
 
-*Index: `(customer_id, document_type, is_preferred)` — supports Mini-360 EID/Passport lookup.*
+*Index: `(party_id, document_type, is_preferred)` — supports Mini-360 EID/Passport lookup.*
 
 ---
 
@@ -410,39 +411,28 @@ Audit log for online banking / digital channel changes.
 
 ---
 
-### 3.13 PARTY_BLACKLIST_DETAIL
+### 3.13 PARTY_RESTRICTION
+
+Unified blacklist and negation records. A single entity with a `restriction_type` discriminator replaces the two separate tables.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `blacklist_id` | UUID | PK | |
+| `restriction_id` | UUID | PK | |
 | `party_id` | UUID | FK → PARTY NOT NULL | |
+| `restriction_type` | ENUM | NOT NULL | `BLACKLISTED` \| `NEGATED` |
 | `reason_code` | VARCHAR(50) | NOT NULL | |
 | `commencement_date` | DATE | NOT NULL | |
-| `expiry_date` | DATE | | |
+| `expiry_date` | DATE | | Blacklisted records only |
 | `status` | VARCHAR(20) | NOT NULL | `ACTIVE` \| `EXPIRED` \| `LIFTED` |
-| `court_order_date` | DATE | | |
-| `court_order_number` | VARCHAR(100) | | |
+| `court_order_date` | DATE | | Blacklisted records only |
+| `court_order_number` | VARCHAR(100) | | Blacklisted records only |
+| `unit` | VARCHAR(50) | | Negated records: business unit that raised the negation |
 | `created_by` | UUID | FK → PARTY | |
 | `created_at` | TIMESTAMP | NOT NULL | |
 
 ---
 
-### 3.14 PARTY_NEGATED_DETAIL
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `negated_id` | UUID | PK | |
-| `party_id` | UUID | FK → PARTY NOT NULL | |
-| `reason_code` | VARCHAR(50) | NOT NULL | |
-| `commencement_date` | DATE | NOT NULL | |
-| `status` | VARCHAR(20) | NOT NULL | |
-| `unit` | VARCHAR(50) | | Business unit that raised the negation |
-| `created_by` | UUID | FK → PARTY | |
-| `created_at` | TIMESTAMP | NOT NULL | |
-
----
-
-### 3.15 PARTY_RELATIONSHIP
+### 3.14 PARTY_RELATIONSHIP
 
 Self-referencing table for all inter-party links.
 
@@ -465,7 +455,7 @@ Self-referencing table for all inter-party links.
 
 ---
 
-### 3.16 AUTHORIZED_REPRESENTATIVE
+### 3.15 AUTHORIZED_REPRESENTATIVE
 
 Per account-level authorizations (separate from customer-level relationships).
 
@@ -490,7 +480,7 @@ Per account-level authorizations (separate from customer-level relationships).
 
 ---
 
-### 3.17 SEGMENT
+### 3.16 SEGMENT
 
 Lookup / reference table for customer segmentation.
 
@@ -508,7 +498,7 @@ Lookup / reference table for customer segmentation.
 
 ---
 
-### 3.18 PARTY_EMPLOYEE *(subtype)*
+### 3.17 PARTY_EMPLOYEE *(subtype)*
 
 One-to-one with `PARTY` where `party_type = EMPLOYEE`. Bank staff — RMs, branch agents, CC agents. Tracked as parties so their contact details, KYC, and relationships reuse the same party infrastructure.
 
@@ -523,7 +513,7 @@ One-to-one with `PARTY` where `party_type = EMPLOYEE`. Bank staff — RMs, branc
 
 ---
 
-### 3.19 BRANCH
+### 3.18 BRANCH
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -537,7 +527,7 @@ One-to-one with `PARTY` where `party_type = EMPLOYEE`. Bank staff — RMs, branc
 
 ---
 
-### 3.20 PARTY_PORTFOLIO_SUMMARY
+### 3.19 PARTY_PORTFOLIO_SUMMARY
 
 Denormalised Mini-360 portfolio KPIs — refreshed asynchronously.
 
@@ -569,7 +559,7 @@ Denormalised Mini-360 portfolio KPIs — refreshed asynchronously.
 
 ---
 
-### 3.21 PARTY_ANALYTICS
+### 3.20 PARTY_ANALYTICS
 
 AI/Analytics-derived data (sentiment, propensity, churn).
 
@@ -588,7 +578,7 @@ AI/Analytics-derived data (sentiment, propensity, churn).
 
 ---
 
-### 3.22 PARTY_PREFERENTIAL_RATE
+### 3.21 PARTY_PREFERENTIAL_RATE
 
 FX / interest preferential rates offered to high-value parties.
 
@@ -604,7 +594,7 @@ FX / interest preferential rates offered to high-value parties.
 
 ---
 
-### 3.23 PARTY_REFERENCE *(subtype)*
+### 3.22 PARTY_REFERENCE *(subtype)*
 
 One-to-one with `PARTY` where `party_type = REFERENCE`. Emergency / personal references provided by Individual customers. The reference contact person is registered as a `PARTY` in their own right so their contact details are stored via `PARTY_CONTACT`, and the link to the customer is captured in `PARTY_RELATIONSHIP`.
 
@@ -617,7 +607,7 @@ One-to-one with `PARTY` where `party_type = REFERENCE`. Emergency / personal ref
 
 ---
 
-### 3.24 DOCUMENT
+### 3.23 DOCUMENT
 
 Generic document store — polymorphic (customer, account, loan, limit, etc.).
 
@@ -807,7 +797,6 @@ Point-in-time balances (refreshed from core banking).
 |--------|------|-------------|-------------|
 | `leaf_id` | UUID | PK | |
 | `cheque_book_id` | UUID | FK → CHEQUE_BOOK NOT NULL | |
-| `account_id` | UUID | FK → ACCOUNT NOT NULL | |
 | `cheque_number` | VARCHAR(20) | NOT NULL | |
 | `status` | VARCHAR(20) | NOT NULL | `UNUSED` \| `PRESENTED` \| `PAID` \| `RETURNED` \| `STOPPED` \| `CANCELLED` |
 | `transaction_date` | DATE | | |
@@ -994,7 +983,6 @@ Fixed/term deposits.
 |--------|------|-------------|-------------|
 | `card_id` | UUID | PK, FK → CARD | |
 | `card_account_number` | VARCHAR(20) | | Internal credit card account |
-| `product_code` | VARCHAR(30) | | |
 | `is_vip_normal` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `is_vip_high` | BOOLEAN | NOT NULL DEFAULT FALSE | |
 | `is_staff_account` | BOOLEAN | NOT NULL DEFAULT FALSE | |
@@ -1219,8 +1207,7 @@ Personal, auto, and home loans.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `loan_id` | UUID | PK | |
-| `agreement_number` | VARCHAR(30) | UNIQUE NOT NULL | |
-| `agreement_id` | VARCHAR(30) | UNIQUE | |
+| `agreement_number` | VARCHAR(30) | UNIQUE NOT NULL | Finacle agreement reference |
 | `party_id` | UUID | FK → PARTY NOT NULL | |
 | `product_id` | UUID | FK → PRODUCT NOT NULL | |
 | `product_category` | VARCHAR(30) | NOT NULL | `PERSONAL` \| `AUTO` \| `HOME` \| `OTHER` |
@@ -1827,7 +1814,6 @@ Sales leads for existing customers and prospects.
 | `lead_id` | UUID | PK | |
 | `lead_reference_number` | VARCHAR(30) | UNIQUE NOT NULL | |
 | `party_id` | UUID | FK → PARTY | Null if prospect |
-| `customer_cif` | VARCHAR(20) | | |
 | `prospect_cif` | VARCHAR(20) | | |
 | `product_id` | UUID | FK → PRODUCT | |
 | `product_code` | VARCHAR(30) | | |
@@ -2114,6 +2100,7 @@ Captures inputs and outputs from CRM calculators (for audit and lead follow-up).
 | PARTY → PARTY_IDENTIFICATION | 1:M | Multiple ID documents per CIF |
 | PARTY → PARTY_CONTACT | 1:M | Phone numbers and email addresses (contact_category discriminates) |
 | PARTY → PARTY_ADDRESS | 1:M | Multiple physical/postal addresses |
+| PARTY → PARTY_RESTRICTION | 1:M | Blacklist / negation records |
 | PARTY → PARTY_CONSENT | 1:1 | Single marketing consent record per party |
 | PARTY → PARTY_COMPLIANCE | 1:1 | Single regulatory compliance record per party |
 | PARTY → PARTY_KYC | 1:1 | |
@@ -2167,9 +2154,11 @@ Captures inputs and outputs from CRM calculators (for audit and lead follow-up).
 
 ### 10.1 Party Hierarchy (Joined Subtypes)
 
-Using a **supertype `PARTY`** table with two subtype tables (`PARTY_INDIVIDUAL`, `PARTY_ORGANIZATION`) joined on `party_id`. The supertype holds **only universally applicable attributes** (status, blacklist flag, language, RM, segment, risk). Individual-specific flags (`is_vip`, `is_royal`, `is_minor`, `is_special_needs`, `is_pep`, `party_classification`) live exclusively in `PARTY_INDIVIDUAL`; corporate-specific fields in `PARTY_ORGANIZATION`. This cleanly supports:
+Using a **supertype `PARTY`** table with four subtype tables (`PARTY_INDIVIDUAL`, `PARTY_ORGANIZATION`, `PARTY_EMPLOYEE`, `PARTY_REFERENCE`) joined on `party_id`. The supertype holds **only universally applicable attributes** (status, blacklist/negation flags, language, RM, segment, risk). Individual-specific flags (`is_vip`, `is_royal`, `is_minor`, `is_special_needs`, `is_pep`, `party_classification`) live exclusively in `PARTY_INDIVIDUAL`; organisation-specific fields in `PARTY_ORGANIZATION`; employee role/code in `PARTY_EMPLOYEE`; emergency reference link in `PARTY_REFERENCE`. Restriction history (blacklisting, negation) is captured in `PARTY_RESTRICTION` with a `restriction_type` discriminator. This cleanly supports:
 - Joint accounts (both parties are `PARTY` rows)
 - Corporate customers with individual directors/shareholders
+- Employees as first-class parties (reusing contact, KYC, and relationship infrastructure)
+- Emergency reference contacts as tracked parties
 - Shared segments, contacts, and channel subscriptions
 
 ### 10.2 Card Supertype Pattern
@@ -2205,4 +2194,4 @@ All mutable entities carry `created_at`, `updated_at`, `created_by`, `updated_by
 
 ---
 
-*End of Data Model — RAKBANK CRM 360 Logical Model v1.2*
+*End of Data Model — RAKBANK CRM 360 Logical Model v1.3*
