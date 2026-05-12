@@ -54,7 +54,7 @@ erDiagram
     text notes
   }
 
-  PARTY_CORPORATE {
+  PARTY_ORGANIZATION {
     uuid party_id PK
     varchar company_name
     varchar short_name
@@ -92,22 +92,14 @@ erDiagram
     timestamp updated_at
   }
 
-  PARTY_PHONE {
-    uuid phone_id PK
+  PARTY_CONTACT {
+    uuid contact_id PK
     uuid party_id FK
+    enum contact_category
     varchar phone_number
     varchar phone_type
     varchar country_code
     varchar area_code
-    boolean is_preferred
-    boolean is_active
-    timestamp created_at
-    timestamp updated_at
-  }
-
-  PARTY_EMAIL {
-    uuid email_id PK
-    uuid party_id FK
     varchar email_address
     varchar email_type
     boolean is_preferred
@@ -267,16 +259,20 @@ erDiagram
     boolean is_active
   }
 
-  EMPLOYEE {
-    uuid employee_id PK
+  PARTY_EMPLOYEE {
+    uuid party_id PK
     varchar employee_code UK
-    varchar full_name
-    varchar mobile
-    varchar email
     varchar role
     uuid branch_id FK
     varchar business_center_name
     boolean is_active
+  }
+
+  PARTY_REFERENCE {
+    uuid party_id PK
+    uuid referencing_party_id FK
+    varchar friend_name
+    varchar relationship_to_customer
   }
 
   BRANCH {
@@ -1140,17 +1136,18 @@ erDiagram
   %% ─────────────────────────────────────────────────────────
 
   PARTY ||--o| PARTY_INDIVIDUAL : "is-a"
-  PARTY ||--o| PARTY_CORPORATE : "is-a"
-  PARTY_CORPORATE }o--o| CORPORATE_GROUP : "belongs to"
+  PARTY ||--o| PARTY_ORGANIZATION : "is-a"
+  PARTY ||--o| PARTY_EMPLOYEE : "is-a"
+  PARTY ||--o| PARTY_REFERENCE : "is-a"
+  PARTY_ORGANIZATION }o--o| CORPORATE_GROUP : "belongs to"
   SEGMENT ||--o{ SEGMENT : "parent"
   PARTY }o--o| SEGMENT : "segment"
-  PARTY }o--o| EMPLOYEE : "primary RM"
+  PARTY }o--o| PARTY_EMPLOYEE : "primary RM"
   PARTY }o--o| BRANCH : "home branch"
-  EMPLOYEE }o--o| BRANCH : "works at"
+  PARTY_EMPLOYEE }o--o| BRANCH : "works at"
 
   PARTY ||--o{ PARTY_IDENTIFICATION : "has"
-  PARTY ||--o{ PARTY_PHONE : "has phones"
-  PARTY ||--o{ PARTY_EMAIL : "has emails"
+  PARTY ||--o{ PARTY_CONTACT : "has contacts"
   PARTY ||--o{ PARTY_ADDRESS : "has addresses"
   PARTY ||--o| PARTY_CONSENT : "has"
   PARTY ||--o| PARTY_COMPLIANCE : "has"
