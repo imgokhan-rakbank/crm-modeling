@@ -1,0 +1,1231 @@
+```mermaid
+erDiagram
+
+  %% ─────────────────────────────────────────────────────────
+  %% DOMAIN: PARTY
+  %% ─────────────────────────────────────────────────────────
+
+  PARTY {
+    uuid party_id PK
+    varchar cif_number UK
+    enum party_type
+    varchar party_status
+    boolean is_blacklisted
+    boolean is_negated
+    date party_since_date
+    varchar preferred_language
+    uuid segment_id FK
+    uuid sub_segment_id FK
+    uuid primary_rm_id FK
+    uuid secondary_rm_id FK
+    uuid primary_branch_id FK
+    varchar risk_profile
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PARTY_INDIVIDUAL {
+    uuid party_id PK
+    boolean is_vip
+    boolean is_royal
+    boolean is_minor
+    boolean is_special_needs
+    boolean is_pep
+    varchar party_classification
+    varchar party_special_status
+    varchar title
+    varchar first_name
+    varchar middle_name
+    varchar last_name
+    varchar full_name
+    date date_of_birth
+    enum gender
+    char nationality
+    char country_of_birth
+    varchar marital_status
+    varchar employment_type
+    varchar employer_name
+    varchar employer_code
+    numeric total_years_employment
+    numeric years_since_in_uae
+    varchar customer_sourced_by
+    varchar source_branch_sol
+    date customer_deceased_date
+    text notes
+  }
+
+  PARTY_ORGANIZATION {
+    uuid party_id PK
+    varchar company_name
+    varchar short_name
+    char country_of_incorporation
+    varchar legal_entity_type
+    date date_of_business_establishment
+    varchar trade_license_number
+    date trade_license_expiry
+    varchar gcd_number
+    uuid group_id FK
+    varchar credit_grading_code
+    varchar group_credit_grading
+    varchar risk_profile
+    text notes
+  }
+
+  CORPORATE_GROUP {
+    uuid group_id PK
+    varchar group_code UK
+    varchar group_name
+    boolean is_active
+  }
+
+  PARTY_IDENTIFICATION {
+    uuid identification_id PK
+    uuid party_id FK
+    varchar document_type
+    varchar document_number
+    date issue_date
+    date expiry_date
+    char issuing_country
+    boolean is_preferred
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PARTY_CONTACT {
+    uuid contact_id PK
+    uuid party_id FK
+    enum contact_category
+    varchar phone_number
+    varchar phone_type
+    varchar country_code
+    varchar area_code
+    varchar email_address
+    varchar email_type
+    boolean is_preferred
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PARTY_ADDRESS {
+    uuid address_id PK
+    uuid party_id FK
+    varchar address_type
+    varchar address_line_1
+    varchar address_line_2
+    varchar city
+    char country
+    varchar postal_code
+    varchar po_box
+    boolean is_preferred
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PARTY_CONSENT {
+    uuid consent_id PK
+    uuid party_id FK
+    boolean marketing_sms
+    boolean marketing_email
+    boolean marketing_phone
+    boolean group_sms
+    boolean group_email
+    boolean group_phone
+    boolean consent_aecb
+    varchar consent_source
+    date consent_date
+    timestamp updated_at
+  }
+
+  PARTY_COMPLIANCE {
+    uuid compliance_id PK
+    uuid party_id FK
+    boolean us_relation
+    varchar tin_number
+    varchar fatca_status
+    varchar crs_category
+    varchar crs_criteria
+    timestamp updated_at
+  }
+
+  PARTY_KYC {
+    uuid kyc_id PK
+    uuid party_id FK
+    boolean kyc_held
+    date kyc_review_date
+    numeric expected_monthly_credit_turnover
+    numeric expected_monthly_cash_credit_pct
+    numeric expected_monthly_noncash_credit_pct
+    date kyc_completed_date
+    timestamp updated_at
+  }
+
+  PARTY_CHANNEL_SUBSCRIPTION {
+    uuid subscription_id PK
+    uuid party_id FK
+    boolean internet_banking
+    boolean sms_banking
+    boolean e_statement
+    varchar aani_enrollment_status
+    date aani_enrollment_date
+    varchar online_banking_user_id
+    boolean login_enabled
+    boolean transaction_enabled
+    varchar rak_token_status
+    timestamp updated_at
+  }
+
+  PARTY_RESTRICTION {
+    uuid restriction_id PK
+    uuid party_id FK
+    enum restriction_type
+    varchar reason_code
+    date commencement_date
+    date expiry_date
+    varchar status
+    date court_order_date
+    varchar court_order_number
+    varchar unit
+    timestamp created_at
+  }
+
+  PARTY_RELATIONSHIP {
+    uuid relationship_id PK
+    uuid primary_party_id FK
+    uuid related_party_id FK
+    varchar relationship_type
+    varchar bank_relation_type
+    varchar relationship_with_entity
+    numeric shareholding_pct
+    date start_date
+    date end_date
+    boolean is_active
+    timestamp created_at
+  }
+
+  PARTY_PORTFOLIO_SUMMARY {
+    uuid portfolio_id PK
+    uuid party_id FK
+    numeric portfolio_aggregated_value
+    integer accounts_count
+    numeric accounts_total_available_balance
+    integer credit_cards_count
+    numeric credit_card_total_outstanding
+    varchar credit_card_delinquency
+    integer loans_count
+    numeric loans_total_outstanding
+    varchar loans_delinquency
+    integer investments_count
+    numeric investments_total_value
+    integer insurance_count
+    numeric insurance_total_premium
+    integer deposits_count
+    integer lending_count
+    numeric lending_total_outstanding
+    integer trade_finance_count
+    timestamp last_refreshed_at
+  }
+
+  PARTY_ANALYTICS {
+    uuid analytics_id PK
+    uuid party_id FK
+    numeric sentiment_score
+    varchar sentiment_label
+    numeric churn_risk_score
+    numeric nps_score
+    varchar propensity_to_buy_product
+    numeric propensity_score
+    jsonb customer_kpi_json
+    timestamp last_refreshed_at
+  }
+
+  SEGMENT {
+    uuid segment_id PK
+    varchar segment_code UK
+    varchar segment_name
+    enum segment_level
+    uuid parent_segment_id FK
+    varchar industry_segment
+    varchar customer_classification
+    boolean is_active
+  }
+
+  PARTY_EMPLOYEE {
+    uuid party_id PK
+    varchar employee_code UK
+    varchar role
+    uuid branch_id FK
+    varchar business_center_name
+    boolean is_active
+  }
+
+  PARTY_REFERENCE {
+    uuid party_id PK
+    uuid referencing_party_id FK
+    varchar friend_name
+    varchar relationship_to_customer
+  }
+
+  BRANCH {
+    uuid branch_id PK
+    varchar branch_code UK
+    varchar branch_name
+    varchar sol_id UK
+    varchar region
+    varchar emirate
+    boolean is_active
+  }
+
+  %% ─────────────────────────────────────────────────────────
+  %% DOMAIN: PRODUCTS — ACCOUNTS & CARDS
+  %% ─────────────────────────────────────────────────────────
+
+  PRODUCT {
+    uuid product_id PK
+    varchar product_code UK
+    varchar product_name
+    varchar product_category
+    varchar product_sub_category
+    char currency
+    varchar scheme_code
+    boolean is_islamic
+    boolean is_active
+  }
+
+  ACCOUNT {
+    uuid account_id PK
+    varchar account_number UK
+    varchar iban_number UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar account_name
+    varchar account_status
+    date account_status_date
+    char currency
+    uuid branch_id FK
+    varchar sol_id
+    date open_date
+    date close_date
+    varchar mode_of_operation
+    varchar freeze_code_reason_1
+    boolean is_staff_account
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  ACCOUNT_BALANCE {
+    uuid balance_id PK
+    uuid account_id FK
+    numeric effective_available_balance
+    numeric clear_balance
+    numeric hold_amount
+    numeric float_balance
+    numeric drawing_power
+    numeric sanction_limit
+    timestamp last_updated_at
+  }
+
+  ACCOUNT_INTEREST_CONFIG {
+    uuid interest_config_id PK
+    uuid account_id FK
+    boolean pay_interest
+    boolean collect_interest
+    numeric credit_interest_pct_min
+    numeric credit_interest_pct_max
+    numeric debit_interest_pct_min
+    numeric debit_interest_pct_max
+    numeric credit_interest_amt
+    numeric interest_accrued_cr
+    timestamp updated_at
+  }
+
+  ACCOUNT_TRANSACTION {
+    uuid transaction_id PK
+    uuid account_id FK
+    date transaction_date
+    date value_date
+    varchar transaction_particulars_code
+    varchar transaction_particulars
+    char account_currency
+    numeric transaction_amount
+    enum transaction_type
+    numeric running_balance
+    varchar channel
+    varchar reference_number
+    timestamp created_at
+  }
+
+  ACCOUNT_LIEN {
+    uuid lien_id PK
+    uuid account_id FK
+    numeric lien_amount
+    varchar lien_reason
+    date created_date
+    date expiry_date
+    varchar status
+    varchar module_type
+    timestamp updated_at
+  }
+
+  CHEQUE_BOOK {
+    uuid cheque_book_id PK
+    uuid account_id FK
+    varchar cheque_type
+    integer number_of_leaves
+    varchar start_cheque_number
+    varchar end_cheque_number
+    date issue_date
+    varchar status
+    varchar source
+  }
+
+  CHEQUE_LEAF {
+    uuid leaf_id PK
+    uuid cheque_book_id FK
+    varchar cheque_number
+    varchar status
+    date transaction_date
+    numeric cheque_amount
+    varchar return_reason
+  }
+
+  STANDING_INSTRUCTION {
+    uuid si_id PK
+    enum source_entity_type
+    uuid source_entity_id
+    varchar si_type
+    integer priority
+    varchar frequency
+    date next_execution_date
+    date start_date
+    date end_date
+    numeric amount
+    char currency
+    varchar beneficiary_name
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  TRANSFER_REMITTANCE {
+    uuid transfer_id PK
+    varchar payment_order_id UK
+    varchar transfer_type
+    varchar channel_id
+    uuid debit_account_id FK
+    varchar credit_account_number
+    numeric debit_amount
+    char debit_currency
+    numeric fx_rate
+    varchar beneficiary_name
+    varchar beneficiary_bank_swift
+    char beneficiary_country
+    varchar purpose_of_payment
+    date transaction_date
+    date value_date
+    varchar status
+    timestamp created_at
+  }
+
+  DEPOSIT {
+    uuid deposit_id PK
+    varchar deposit_account_number UK
+    uuid party_id FK
+    uuid product_id FK
+    uuid linked_account_id FK
+    char currency
+    numeric deposit_amount
+    numeric interest_rate
+    date opening_date
+    date maturity_date
+    numeric maturity_amount
+    integer max_renewals_allowed
+    integer renewals_done
+    boolean auto_renewal
+    boolean auto_closure
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  CARD {
+    uuid card_id PK
+    enum card_type
+    varchar card_number_masked
+    varchar card_number_token UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar card_status
+    char card_expiry_date
+    date issue_date
+    date last_renew_date
+    varchar pin_status
+    date pin_last_change_date
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  DEBIT_CARD {
+    uuid card_id PK
+    uuid linked_account_id FK
+    varchar card_variant
+  }
+
+  PREPAID_CARD {
+    uuid card_id PK
+    uuid linked_account_id FK
+    varchar prepaid_type
+  }
+
+  CREDIT_CARD {
+    uuid card_id PK
+    varchar card_account_number
+    boolean is_vip_normal
+    boolean is_vip_high
+    boolean is_staff_account
+    boolean is_enrolled_falcon
+    varchar rewards_program
+    varchar authorization_control_profile
+    varchar authorization_status
+    date deactivate_from
+    date deactivate_until
+  }
+
+  DIGITAL_ACCESS_CARD {
+    uuid card_id PK
+    varchar dac_holder
+  }
+
+  CREDIT_CARD_BALANCE {
+    uuid balance_id PK
+    uuid card_id FK
+    numeric outstanding_balance
+    numeric available_funds
+    numeric credit_limit
+    numeric cash_limit
+    numeric minimum_due
+    numeric total_due
+    date due_date
+    varchar delinquency_bucket
+    integer dpd
+    timestamp last_updated_at
+  }
+
+  CREDIT_CARD_STATEMENT {
+    uuid statement_id PK
+    uuid card_id FK
+    date statement_date
+    numeric opening_balance
+    numeric closing_balance
+    numeric total_debits
+    numeric total_credits
+    numeric minimum_due
+    numeric total_due
+    date payment_due_date
+    numeric quote_for_closure
+  }
+
+  CARD_AUTHORIZATION_TRANSACTION {
+    uuid auth_transaction_id PK
+    uuid card_id FK
+    timestamp transaction_datetime
+    numeric transaction_amount
+    char transaction_currency
+    numeric billing_amount
+    char billing_currency
+    varchar merchant_name
+    varchar merchant_category_code
+    varchar pos_entry_mode
+    varchar authorization_code
+    varchar status
+    varchar token_number
+  }
+
+  CARD_TOKEN {
+    uuid token_id PK
+    uuid card_id FK
+    enum token_network
+    varchar token_type
+    varchar token_unique_reference UK
+    varchar wallet_provider
+    varchar device_name
+    varchar device_type
+    varchar serial_number
+    varchar token_status
+    date creation_date
+    date initial_activation_date
+  }
+
+  CREDIT_CARD_INSTALLMENT {
+    uuid installment_id PK
+    uuid card_id FK
+    varchar description
+    varchar merchant_name
+    varchar authorization_code
+    numeric original_transaction_amount
+    char original_transaction_currency
+    integer number_of_installments
+    numeric monthly_installment_amount
+    numeric interest_rate
+    varchar installment_type
+    varchar status
+    date booking_date
+  }
+
+  SUPPLEMENTARY_CARD {
+    uuid supp_card_id PK
+    uuid primary_card_id FK
+    varchar supplementary_card_number_token UK
+    uuid supplementary_party_id FK
+    varchar supplementary_customer_name
+    char card_expiry_date
+    varchar card_status
+    numeric credit_limit
+  }
+
+  CREDIT_CARD_REWARDS {
+    uuid rewards_id PK
+    uuid card_id FK
+    numeric bonus_points
+    numeric spend_points
+    numeric redeemed_points
+    numeric available_points
+    numeric expiring_points
+    date expiry_date
+    timestamp last_updated_at
+  }
+
+  AUTHORIZED_REPRESENTATIVE {
+    uuid auth_rep_id PK
+    uuid account_id FK
+    uuid party_id FK
+    varchar rep_name
+    varchar rep_designation
+    varchar document_type
+    varchar document_id
+    date document_expiry
+    boolean can_collect_cheque_book
+    boolean can_do_eft
+    boolean is_active
+    timestamp created_at
+  }
+
+  %% ─────────────────────────────────────────────────────────
+  %% DOMAIN: LENDING
+  %% ─────────────────────────────────────────────────────────
+
+  RETAIL_LOAN {
+    uuid loan_id PK
+    varchar agreement_number UK
+    varchar agreement_id UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar product_category
+    char currency
+    numeric loan_amount
+    numeric current_outstanding
+    numeric overdue_amount
+    varchar interest_type
+    numeric interest_rate
+    varchar floating_rate_index
+    date loan_start_date
+    date maturity_date
+    numeric emi_amount
+    integer dpd
+    varchar delinquency_bucket
+    varchar loan_status
+    uuid repayment_account_id FK
+    uuid source_branch_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  RETAIL_LOAN_AUTO_DETAILS {
+    uuid auto_detail_id PK
+    uuid loan_id FK
+    varchar vehicle_registration_number
+    varchar asset_category
+    varchar asset_type
+    varchar chassis_number
+    varchar engine_number
+    integer model_year
+    varchar make
+    varchar model
+  }
+
+  RETAIL_LOAN_HOME_DETAILS {
+    uuid home_detail_id PK
+    uuid loan_id FK
+    varchar developer_code
+    varchar property_id
+    varchar property_type
+    varchar property_description
+    integer lien_position
+    varchar emirate
+  }
+
+  RETAIL_LOAN_REPAYMENT_SCHEDULE {
+    uuid schedule_id PK
+    uuid loan_id FK
+    integer installment_number
+    date due_date
+    numeric opening_principal
+    numeric installment_amount
+    numeric principal_component
+    numeric interest_component
+    numeric charges_component
+    numeric balance_after_payment
+    date actual_payment_date
+    varchar status
+  }
+
+  LOAN_GUARANTOR {
+    uuid guarantor_id PK
+    enum loan_entity_type
+    uuid loan_entity_id
+    varchar applicant_type
+    uuid party_id FK
+    varchar name
+    varchar relation
+    varchar cif_number
+  }
+
+  LOAN_EARLY_CLOSURE {
+    uuid early_closure_id PK
+    enum loan_entity_type
+    uuid loan_entity_id
+    numeric penalty
+    numeric balance_principal
+    numeric past_due_installments
+    numeric other_charges
+    numeric total_closure_amount
+    date quote_date
+    date quote_expiry_date
+  }
+
+  SME_LOAN {
+    uuid sme_loan_id PK
+    varchar product_number UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar product_type
+    char currency
+    numeric sanction_amount
+    numeric disbursed_amount
+    integer period_months
+    date next_payment_date
+    numeric next_payment_principal
+    numeric next_payment_interest
+    numeric schedule_balance
+    numeric pay_off_amount
+    numeric interest_pct_min
+    numeric interest_pct_max
+    varchar loan_type
+    boolean is_top_up
+    boolean is_auto_reschedule
+    varchar loan_status
+    uuid repayment_account_id FK
+    uuid source_branch_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  SME_LOAN_DISBURSEMENT {
+    uuid disbursement_id PK
+    uuid sme_loan_id FK
+    date disbursement_date
+    varchar stage_of_project
+    char currency
+    numeric disbursement_amount
+    varchar mode_of_payment
+    uuid credit_account_id FK
+  }
+
+  CREDIT_LIMIT {
+    uuid limit_id PK
+    varchar limit_reference UK
+    uuid party_id FK
+    uuid sme_loan_id FK
+    varchar level_number
+    integer serial_number
+    numeric sanction_amount_limit_ccy
+    numeric sanction_amount_home_ccy
+    char limit_currency
+    numeric fund_liability
+    numeric non_fund_liability
+    numeric total_liability
+    numeric utilized_limit
+    numeric available_limit
+    date expiry_date
+    date review_date
+    varchar limit_type
+    varchar collateral_code
+    varchar status
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  CREDIT_LIMIT_COLLATERAL {
+    uuid collateral_link_id PK
+    uuid limit_id FK
+    varchar collateral_type
+    varchar collateral_description
+    numeric collateral_value
+    char collateral_currency
+    varchar account_number
+    date expiry_date
+    boolean is_active
+  }
+
+  OD_FACILITY {
+    uuid od_id PK
+    uuid account_id FK
+    uuid sme_loan_id FK
+    date application_from_date
+    date expiry_date
+    numeric sanction_limit
+    numeric interest_rate
+    date sanction_date
+    varchar status
+  }
+
+  ISLAMIC_FINANCE {
+    uuid islamic_finance_id PK
+    varchar agreement_id UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar scheme
+    char currency
+    date maturity_date
+    numeric total_finance_amount
+    numeric total_outstanding_account_ccy
+    numeric total_outstanding_aed
+    numeric overdue_amount
+    numeric profit_rate
+    varchar asset_type
+    varchar registration_number
+    boolean insured
+    varchar finance_status
+    uuid repayment_account_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  TRADE_FINANCE {
+    uuid trade_finance_id PK
+    varchar product_number UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar scheme_code
+    varchar scheme_description
+    varchar instrument_type
+    char currency
+    numeric amount
+    numeric outstanding_amount
+    date issue_date
+    date expiry_date
+    varchar beneficiary_name
+    varchar status
+    timestamp created_at
+  }
+
+  %% ─────────────────────────────────────────────────────────
+  %% DOMAIN: INVESTMENTS & INSURANCE
+  %% ─────────────────────────────────────────────────────────
+
+  INVESTMENT_PORTFOLIO {
+    uuid investment_id PK
+    uuid party_id FK
+    varchar risk_profile_category
+    varchar final_risk_profile_category
+    numeric risk_profile_score
+    numeric final_risk_score
+    varchar client_classification
+    numeric total_investment_value_aed
+    timestamp last_refreshed_at
+    timestamp created_at
+  }
+
+  INVESTMENT_ASSET {
+    uuid asset_id PK
+    uuid investment_id FK
+    varchar asset_class
+    varchar product_name
+    varchar product_code
+    char product_currency
+    numeric current_investment_value
+    numeric pct_of_portfolio
+    numeric quantity
+    varchar quantity_unit
+    numeric average_cost
+    numeric unrealized_gain_loss
+    numeric realized_gain_loss
+    date valuation_date
+    numeric nav
+    numeric accrued_interest
+    numeric coupon_rate
+    date maturity_date
+    varchar custody_account_number
+    varchar equity_category
+    integer number_of_contracts
+    varchar holding_type
+    varchar product_type
+    varchar product_subtype
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  INVESTMENT_INSURANCE {
+    uuid inv_insurance_id PK
+    uuid asset_id FK
+    varchar policy_number UK
+    char product_currency
+    numeric basic_sum_assured
+    varchar application_number
+    varchar insurer_code
+    varchar premium_payment_frequency
+    numeric annual_premium_amount
+    integer policy_term_years
+    date next_recurring_premium_due_date
+    numeric recurring_premium_amount
+    boolean auto_premium
+    varchar payment_mode
+    uuid payment_account_id FK
+  }
+
+  INSURANCE_POLICY {
+    uuid policy_id PK
+    varchar policy_number UK
+    uuid party_id FK
+    uuid product_id FK
+    varchar product_name
+    varchar plan_name
+    varchar policy_status
+    char policy_currency
+    varchar policy_type
+    varchar isp_name
+    integer plan_term_years
+    numeric monthly_premium
+    numeric annual_premium
+    numeric basic_sum_assured
+    date start_date
+    date end_date
+    boolean accidental_death_benefit
+    boolean ptd_benefit
+    boolean terminal_illness_benefit
+    boolean critical_illness_benefit
+    uuid rm_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  INSURANCE_BENEFICIARY {
+    uuid beneficiary_id PK
+    uuid policy_id FK
+    varchar beneficiary_name
+    varchar relationship
+    numeric percentage
+    varchar covered_member_name
+    numeric sum_covered
+  }
+
+  INSURANCE_PAYMENT {
+    uuid payment_id PK
+    uuid policy_id FK
+    integer payment_sequence
+    varchar payment_mode
+    uuid payment_account_id FK
+    uuid payment_cc_id FK
+    date next_processing_date
+    integer retry_count
+    numeric amount
+    varchar status
+  }
+
+  INSURANCE_TRANSACTION {
+    uuid ins_transaction_id PK
+    uuid policy_id FK
+    date transaction_date
+    varchar transaction_type
+    varchar mode
+    numeric amount
+    varchar status
+  }
+
+  %% ─────────────────────────────────────────────────────────
+  %% DOMAIN: CRM OPERATIONS
+  %% ─────────────────────────────────────────────────────────
+
+  INTERACTION {
+    uuid interaction_id PK
+    uuid party_id FK
+    varchar interaction_type
+    varchar channel
+    timestamp interaction_datetime
+    varchar priority
+    varchar category
+    text description
+    varchar event_name
+    text content
+    varchar reference_id
+    varchar request_type
+    varchar status
+    uuid created_by FK
+    timestamp created_at
+  }
+
+  SERVICE_REQUEST {
+    uuid service_request_id PK
+    varchar reference_number UK
+    uuid party_id FK
+    varchar request_type
+    varchar request_sub_type
+    varchar assigned_group
+    uuid assigned_to FK
+    varchar channel
+    varchar priority
+    varchar status
+    timestamp sla_due_datetime
+    timestamp created_datetime
+    timestamp last_updated_datetime
+    timestamp closed_datetime
+    text resolution
+    uuid created_by FK
+  }
+
+  LEAD {
+    uuid lead_id PK
+    varchar lead_reference_number UK
+    uuid party_id FK
+    varchar customer_cif
+    varchar prospect_cif
+    uuid product_id FK
+    varchar lead_status
+    varchar lead_source
+    uuid lead_assigned_to FK
+    varchar campaign_id
+    numeric expected_amount
+    char currency
+    text remarks
+    timestamp created_datetime
+    timestamp last_updated_datetime
+    timestamp converted_datetime
+    uuid created_by FK
+  }
+
+  PARTY_PACKAGE {
+    uuid package_id PK
+    uuid party_id FK
+    varchar package_name
+    uuid enrollment_account_id FK
+    varchar status
+    date last_activity_date
+    timestamp created_at
+  }
+
+  PACKAGE_UTILIZATION {
+    uuid utilization_id PK
+    uuid package_id FK
+    enum utilization_type
+    varchar transaction_type
+    varchar description
+    varchar frequency
+    numeric eligible_at_cif_level
+    numeric availed_at_account_level
+    numeric remaining
+    date period_start_date
+    date period_end_date
+  }
+
+  DOCUMENT {
+    uuid document_id PK
+    varchar entity_type
+    uuid entity_id
+    varchar document_code
+    varchar document_name
+    varchar document_number
+    date issue_date
+    date expiry_date
+    boolean is_preferred
+    boolean is_active
+    varchar storage_reference
+    timestamp created_at
+  }
+
+  MEMO {
+    uuid memo_id PK
+    varchar entity_type
+    uuid entity_id
+    timestamp memo_date
+    text memo_message
+    uuid memo_user FK
+    varchar memo_type
+    varchar topic
+    varchar intent
+  }
+
+  DISPUTE_FORM {
+    uuid dispute_id PK
+    varchar dispute_number UK
+    uuid party_id FK
+    uuid card_id FK
+    uuid account_id FK
+    varchar dispute_reason
+    varchar report_sent_by
+    timestamp raised_datetime
+    varchar status
+  }
+
+  CALCULATOR_SESSION {
+    uuid session_id PK
+    uuid party_id FK
+    varchar calculator_type
+    jsonb input_json
+    jsonb output_json
+    uuid used_by FK
+    timestamp created_at
+  }
+
+  SALARY_TRANSACTION {
+    uuid salary_id PK
+    uuid account_id FK
+    date salary_date
+    varchar salary_type
+    numeric salary_amount
+    char salary_month
+    varchar status
+  }
+
+  ESTATEMENT_DELIVERY {
+    uuid delivery_id PK
+    uuid party_id FK
+    varchar record_id
+    varchar product_entity_type
+    varchar product_number
+    varchar email_address
+    date send_date
+    date delivery_date
+    varchar delivery_status
+    integer retry_count
+  }
+
+  AVERAGE_BALANCE_ENQUIRY {
+    uuid avg_balance_id PK
+    uuid account_id FK
+    char month
+    numeric average_balance
+    numeric maximum_balance
+    numeric minimum_balance
+    integer minimum_balance_days
+  }
+
+  %% ─────────────────────────────────────────────────────────
+  %% RELATIONSHIPS
+  %% ─────────────────────────────────────────────────────────
+
+  PARTY ||--o| PARTY_INDIVIDUAL : "is-a"
+  PARTY ||--o| PARTY_ORGANIZATION : "is-a"
+  PARTY ||--o| PARTY_EMPLOYEE : "is-a"
+  PARTY ||--o| PARTY_REFERENCE : "is-a"
+  PARTY_ORGANIZATION }o--o| CORPORATE_GROUP : "belongs to"
+  SEGMENT ||--o{ SEGMENT : "parent"
+  PARTY }o--o| SEGMENT : "segment"
+  PARTY }o--o| PARTY_EMPLOYEE : "primary RM"
+  PARTY }o--o| BRANCH : "home branch"
+  PARTY_EMPLOYEE }o--o| BRANCH : "works at"
+
+  PARTY ||--o{ PARTY_IDENTIFICATION : "has"
+  PARTY ||--o{ PARTY_CONTACT : "has contacts"
+  PARTY ||--o{ PARTY_ADDRESS : "has addresses"
+  PARTY ||--o| PARTY_CONSENT : "has"
+  PARTY ||--o| PARTY_COMPLIANCE : "has"
+  PARTY ||--o| PARTY_KYC : "has"
+  PARTY ||--o| PARTY_CHANNEL_SUBSCRIPTION : "has"
+  PARTY ||--o{ PARTY_RESTRICTION : "has"
+  PARTY ||--o| PARTY_PORTFOLIO_SUMMARY : "summarised in"
+  PARTY ||--o| PARTY_ANALYTICS : "analysed in"
+  PARTY ||--o{ PARTY_RELATIONSHIP : "primary in"
+  PARTY ||--o{ PARTY_RELATIONSHIP : "related in"
+
+  PARTY ||--o{ ACCOUNT : "owns"
+  ACCOUNT ||--|| ACCOUNT_BALANCE : "has balance"
+  ACCOUNT ||--o| ACCOUNT_INTEREST_CONFIG : "has interest config"
+  ACCOUNT ||--o{ ACCOUNT_TRANSACTION : "has transactions"
+  ACCOUNT ||--o{ ACCOUNT_LIEN : "has liens"
+  ACCOUNT ||--o{ CHEQUE_BOOK : "has cheque books"
+  CHEQUE_BOOK ||--o{ CHEQUE_LEAF : "has leaves"
+  ACCOUNT ||--o{ STANDING_INSTRUCTION : "has SIs"
+  ACCOUNT ||--o{ TRANSFER_REMITTANCE : "debit source"
+  ACCOUNT ||--o{ SALARY_TRANSACTION : "receives salary"
+  ACCOUNT ||--o{ AVERAGE_BALANCE_ENQUIRY : "has avg balance"
+  ACCOUNT ||--o{ AUTHORIZED_REPRESENTATIVE : "has auth reps"
+  ACCOUNT }o--o| BRANCH : "held at"
+
+  PARTY ||--o{ DEPOSIT : "holds"
+  DEPOSIT }o--o| ACCOUNT : "linked to"
+  DEPOSIT }o--|| PRODUCT : "of type"
+
+  PARTY ||--o{ CARD : "holds"
+  CARD }o--|| PRODUCT : "of type"
+  CARD ||--o| DEBIT_CARD : "is-a"
+  CARD ||--o| CREDIT_CARD : "is-a"
+  CARD ||--o| PREPAID_CARD : "is-a"
+  CARD ||--o| DIGITAL_ACCESS_CARD : "is-a"
+  DEBIT_CARD }o--o| ACCOUNT : "linked to"
+  PREPAID_CARD }o--o| ACCOUNT : "linked to"
+  CARD ||--o{ CARD_AUTHORIZATION_TRANSACTION : "has auth txns"
+  CARD ||--o{ CARD_TOKEN : "tokenised in"
+
+  CREDIT_CARD ||--|| CREDIT_CARD_BALANCE : "has balance"
+  CREDIT_CARD ||--o{ CREDIT_CARD_STATEMENT : "has statements"
+  CREDIT_CARD ||--o{ CREDIT_CARD_INSTALLMENT : "has installments"
+  CREDIT_CARD ||--o{ SUPPLEMENTARY_CARD : "has supp cards"
+  CREDIT_CARD ||--o| CREDIT_CARD_REWARDS : "has rewards"
+  CREDIT_CARD ||--o{ CREDIT_CARD_INSURANCE : "has insurance"
+
+  PARTY ||--o{ RETAIL_LOAN : "has"
+  RETAIL_LOAN }o--|| PRODUCT : "of type"
+  RETAIL_LOAN ||--o| RETAIL_LOAN_AUTO_DETAILS : "auto details"
+  RETAIL_LOAN ||--o| RETAIL_LOAN_HOME_DETAILS : "home details"
+  RETAIL_LOAN ||--o{ RETAIL_LOAN_REPAYMENT_SCHEDULE : "has schedule"
+  RETAIL_LOAN ||--o{ LOAN_GUARANTOR : "has guarantors"
+  RETAIL_LOAN ||--o{ LOAN_EARLY_CLOSURE : "closure quote"
+
+  PARTY ||--o{ SME_LOAN : "has"
+  SME_LOAN }o--|| PRODUCT : "of type"
+  SME_LOAN ||--o{ SME_LOAN_DISBURSEMENT : "has disbursements"
+  SME_LOAN ||--o{ CREDIT_LIMIT : "has limits"
+  SME_LOAN ||--o{ OD_FACILITY : "has OD"
+  CREDIT_LIMIT ||--o{ CREDIT_LIMIT_COLLATERAL : "secured by"
+
+  PARTY ||--o{ ISLAMIC_FINANCE : "has"
+  ISLAMIC_FINANCE }o--|| PRODUCT : "of type"
+
+  PARTY ||--o{ TRADE_FINANCE : "has"
+  TRADE_FINANCE }o--|| PRODUCT : "of type"
+
+  PARTY ||--o| INVESTMENT_PORTFOLIO : "has"
+  INVESTMENT_PORTFOLIO ||--o{ INVESTMENT_ASSET : "contains"
+  INVESTMENT_ASSET ||--o| INVESTMENT_INSURANCE : "may be"
+
+  PARTY ||--o{ INSURANCE_POLICY : "holds"
+  INSURANCE_POLICY }o--|| PRODUCT : "of type"
+  INSURANCE_POLICY ||--o{ INSURANCE_BENEFICIARY : "has"
+  INSURANCE_POLICY ||--o{ INSURANCE_PAYMENT : "paid via"
+  INSURANCE_POLICY ||--o{ INSURANCE_TRANSACTION : "has txns"
+
+  PARTY ||--o{ INTERACTION : "has"
+  PARTY ||--o{ SERVICE_REQUEST : "raises"
+  PARTY ||--o{ LEAD : "targeted by"
+  PARTY ||--o{ PARTY_PACKAGE : "enrolled in"
+  PARTY_PACKAGE ||--o{ PACKAGE_UTILIZATION : "has utilisation"
+  PARTY ||--o{ DOCUMENT : "has documents"
+  PARTY ||--o{ DISPUTE_FORM : "raises disputes"
+  PARTY ||--o{ CALCULATOR_SESSION : "uses calculators"
+  PARTY ||--o{ ESTATEMENT_DELIVERY : "receives eStatements"
+
+  PRODUCT ||--o{ ACCOUNT : "defines"
+```
